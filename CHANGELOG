@@ -1,0 +1,8 @@
+Version 1.1:
+   - Replaced Cstrings with strings and ints
+   - Refactored changeVolume() function
+   - Added better error handling
+   - Implmeneted help message
+
+Version 1.0:
+   - Initial release
