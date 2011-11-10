@@ -1,64 +1,83 @@
+// Shane Tully
+// shanetully.com
+// Version 1.1
+
 #include "stdlib.h"
 #include "stdio.h"
 #include "string.h"
+#include <string>
+#include <sstream>
 #include <iostream>
 
-#define BUFFER 100
+// Constants
+#define VERSION 1.1
+#define FRONT 0
+#define PCM 1
+#define SUCCESS 0
+#define FAILURE 1
 
-using std::cout;
-using std::endl;
+using namespace std;
 
 void showHelp();
-void executeCommand(char* volumePercent, int channel=0);
+void showVersion();
+bool changeVolume(int leftVolume, int rightVolume, int channel=FRONT);
+
 
 int main(int argc, char* argv[]) {
-   char *volumePercent = new char[BUFFER/10];
+   int *volumePercent = new int;
+   int status = SUCCESS;
 
    // If wrong number of  args or help requested, show help
-   if(argc != 2 || strcmp(argv[1], "--help") == 0)
+   if(argc != 2 || strcmp(argv[1], "--help") == 0) {
       showHelp();
+      return FAILURE;
+   // Show version and exit if requested
+   } else if(strcmp(argv[1], "--version") == 0) {
+      showVersion();
+      return SUCCESS;
    // Convert "mute" or "unmute" to 0 and 100 respectively
-   else if(strcmp(argv[1], "mute") == 0)
-      strcpy(volumePercent, "0");
+   } else if(strcmp(argv[1], "mute") == 0)
+      *volumePercent = 0;
    else if(strcmp(argv[1], "unmute") == 0)
-      strcpy(volumePercent, "100");
-   // Assume anything else is a volume percent. Convert it to an int and copy it to volumePercent
-   else
-      sprintf(volumePercent, "%d", atoi(argv[1]));
+      *volumePercent = 100;
+   // Assume anything else is a volume percent. atoi returns 0 on failure so explicitly check for 0 in
+   // the args.
+   else if((atoi(argv[1]) != 0 || argv[1][0] == '0') && atoi(argv[1]) >= 0 && atoi(argv[1]) <= 100)
+      *volumePercent = atoi(argv[1]);
+   else {
+      showHelp();
+      return FAILURE;
+   }
 
    // Execute command for both PCM and Front channels
-   executeCommand(volumePercent, 0);
-   executeCommand(volumePercent, 1);
+   if(!changeVolume(100, *volumePercent, FRONT) || !changeVolume(100, *volumePercent, PCM)) {
+      cout << "Error: Failed to run Alsa command." << endl;
+      status = FAILURE;
+   }
 
-   // Clean up
+   // Clean up pointers
    delete volumePercent;
    volumePercent = NULL;
 
-   return 0;
+   return status;
 }
 
-void executeCommand(char* volumePercent, int channel) {
-   // Channel: 0 = front, 1 = PCM
-
-   char *command = new char[BUFFER];
+bool changeVolume(int leftVolume, int rightVolume, int channel) {
+   stringstream ss;
+   string command;
 
    // 100% is the percent of the left channel which should always be 100%
-   strcpy(command, "amixer sset ");
-   strcat(command, ((channel == 0) ? "'Front'" : "'PCM'"));
-   strcat(command, " 100%,");
+   ss << "amixer sset " << ((channel == 0) ? "'Front'" : "'PCM'") << " " << leftVolume << "%," << rightVolume << "%";
+   command = ss.str();
 
-   // Add percent to command (%% is escape for percent sign since Alsa expects a % after the volume percent)
-   sprintf(command, "%s%s%%", command, volumePercent);
-
-   // Execute command
-   cout << command << endl;
-   popen(command, "r");
-
-   // Clean up
-   delete command;
-   command = NULL;
+   // Execute command and return if it was successful
+   return popen(command.c_str(), "r");
 }
 
 void showHelp() {
-   cout << "TODO" << endl;
+   cout << "Usage: downstairsVolume [volume percent]\n\twhere volume percent is an intger 0-100 or \"mute\" for 0% or \"unmute\" for 100%." << endl;
+}
+
+void showVersion() {
+   cout << "Version " << VERSION << endl;
 }
