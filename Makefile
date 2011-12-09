@@ -1,22 +1,21 @@
+# Shane Tully
+
 CC=g++
 LANG=cpp
 
-SOURCES=downstairsVolume.cpp
+SOURCES=alsa_control.cpp
 OBJECTS=$(SOURCES:.$(LANG)=.o)
-EXECUTABLE=downstairsVolume
+EXECUTABLE=alsa_control
 
 CFLAGS=-c -Wall -O2
-#MACROS=-DMODELDIR=\"`pkg-config --variable=modeldir pocketsphinx`\"
-#PKG_CONFIG=`pkg-config --cflags --libs pocketsphinx sphinxbase`
-
 
 all: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
-		$(CC) -o $(EXECUTABLE) $(OBJECTS) $(PKG_CONFIG)
+		$(CC) -o $(EXECUTABLE) $(OBJECTS)
 
 .$(LANG).o:
-		$(CC) $(CFLAGS) $(MACROS) $< -o $@
+		$(CC) $(CFLAGS) $< -o $@
 
 install:
 		mv $(EXECUTABLE) /usr/sbin/
