@@ -1,0 +1,26 @@
+Alsa_Control
+Author: Shane Tully
+shanetully.com
+
+
+Usage
+================
+alsa_control [channel]=[left volume],[right_volume]
+
+Multiple channels are supported and are case sensititive
+Alsa will output an error if an invalid channel is used
+
+
+
+Support
+================
+This program is a little side project and carries no warranty or support
+from its author.
+
+
+
+Legal
+================
+This program is open source software. It is free to distribute, modify, and use
+with the exception of it being made closed source and sold for commercial purposes
+without the consent of the author.

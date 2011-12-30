@@ -1,0 +1,100 @@
+package com.shanet.alsa_control;
+
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.net.UnknownHostException;
+
+public class Server {
+
+	private static final int DEFAULT_PORT = 4242;
+	private static final int SUCCESS = 0;
+	private static final int FAILURE = -1;
+	
+	public String host;
+	public int port;
+
+    private Socket connSock = null;
+    //private BufferedReader recv = null;
+    private DataInputStream recv = null;
+    private PrintWriter send = null;
+
+	public Server(String host, int port) {
+		this.host = host;
+		this.port = port;
+	}
+	
+	public Server(String host) {
+		this(host, DEFAULT_PORT);
+	}
+	
+	public Server() {
+		this("", DEFAULT_PORT);
+	}
+	
+    public int connect() throws UnknownHostException, IOException {
+    	connSock = new Socket(host, port);
+    	
+    	if(connSock.isConnected()) {
+    	   // Open send stream
+           send = new PrintWriter(connSock.getOutputStream(), true);
+
+           // Open read stream
+           //recv = new BufferedReader(new InputStreamReader(connSock.getInputStream()));
+           recv = new DataInputStream(connSock.getInputStream());
+
+           
+           if(send != null && recv != null)
+              return SUCCESS;
+    	}
+    	return FAILURE;
+    }
+
+    public int send(String data) {
+    	// Only try to send if send isn't null
+    	if(send != null) {
+    	   send.println(data);
+    	   return SUCCESS;
+    	}
+    	return FAILURE;
+    }
+
+    public String receive() throws IOException {
+    	// Only try to receive if recv isn't null
+    	String tmp = recv.readUTF();
+    	if(recv != null)
+    		return tmp;
+    	return "";
+    }
+
+    public void closeConnection() throws IOException {
+    	connSock.close();
+    }
+
+    public boolean isConnected() {
+    	return connSock.isConnected();
+    }
+    
+    public String getServerIPAddress() {
+    	if(isConnected())
+    		return connSock.getInetAddress().toString();
+    	return "";
+    }
+    
+    public String getHost() {
+    	return host;
+    }
+
+    public int getPort() {
+    	return port;
+    }
+
+    public void setPort(int port) {
+    	this.port = port;
+    }
+
+    public void setHost(String host) {
+    	this.host = host;
+    }
+}

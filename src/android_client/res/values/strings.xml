@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Alsa Control Android Client</string>
+    
+    <string name="serverLabel">Server:</string>
+    <string name="channelLabel">Channel:</string>
+    <string name="leftVolLabel">Left Volume</string>
+    <string name="rightVolLabel">Right Volume</string>
+    <string name="submit">Submit</string>
+    
+    <string-array name="channels">
+        <item>Front</item>
+        <item>PCM</item>
+        <item>Main</item>
+    </string-array>
+
+</resources>
