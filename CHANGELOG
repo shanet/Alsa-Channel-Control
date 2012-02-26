@@ -1,3 +1,8 @@
+Version 3.0-beta:
+   - Updated to client / server architecture
+   - Added init.d script
+   - Added Android client
+
 Version 2.0:
    - Added support for changing left and right volumes independently
    - Added support for changing custom channels

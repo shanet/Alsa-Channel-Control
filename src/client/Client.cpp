@@ -16,12 +16,14 @@ Client::~Client() {
 
 int Client::connectToServer(int aiFamily) {
    // Get server info
-   if(getAddressInfo(aiFamily) == FAILURE)
+   if(getAddressInfo(aiFamily) == FAILURE) {
      return FAILED_TO_GET_ADDR_INFO;
+   }
 
    // Connect to server
-   if(connect() == FAILURE)
+   if(connect() == FAILURE) {
       return FAILED_TO_CONNECT;
+   }
 
    // Yay!
    return SUCCESS;
@@ -54,8 +56,9 @@ int Client::connect() {
    // Traverse list of results and bind to first socket possible
    for(tmpServerInfo = serverInfo; tmpServerInfo != NULL; tmpServerInfo = tmpServerInfo->ai_next) {
       // Try to get socket
-      if((connSock = socket(tmpServerInfo->ai_family, tmpServerInfo->ai_socktype, tmpServerInfo->ai_protocol)) == FAILURE)
+      if((connSock = socket(tmpServerInfo->ai_family, tmpServerInfo->ai_socktype, tmpServerInfo->ai_protocol)) == FAILURE) {
          continue;
+      }
 
       // Try to connect to server
       if(::connect(connSock, tmpServerInfo->ai_addr, tmpServerInfo->ai_addrlen) == FAILURE) {
@@ -72,8 +75,9 @@ int Client::connect() {
    if(tmpServerInfo == NULL) {
       connSock = FAILURE;
       return FAILURE;
-   } else
+   } else {
       return SUCCESS;
+   }
 }
 
 

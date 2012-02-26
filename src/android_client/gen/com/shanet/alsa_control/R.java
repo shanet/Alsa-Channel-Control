@@ -14,7 +14,15 @@ public final class R {
     public static final class attr {
     }
     public static final class drawable {
-        public static final int ic_launcher=0x7f020000;
+        public static final int delete_icon=0x7f020000;
+        public static final int edit_icon=0x7f020001;
+        public static final int error_icon=0x7f020002;
+        public static final int help_icon=0x7f020003;
+        public static final int ic_launcher=0x7f020004;
+        public static final int info_icon=0x7f020005;
+        public static final int load_icon=0x7f020006;
+        public static final int save_icon=0x7f020007;
+        public static final int settings_icon=0x7f020008;
     }
     public static final class id {
         public static final int channelLabel=0x7f060001;
@@ -35,11 +43,28 @@ public final class R {
         public static final int main=0x7f030001;
     }
     public static final class string {
+        public static final int aboutThisAppText=0x7f040014;
+        public static final int aboutThisAppTitle=0x7f040013;
         public static final int app_name=0x7f040000;
+        public static final int changelogText=0x7f040016;
+        public static final int changelogTitle=0x7f040015;
         public static final int channelLabel=0x7f040002;
         public static final int leftVolLabel=0x7f040003;
+        public static final int okay=0x7f040006;
+        public static final int readIOError=0x7f040008;
+        public static final int readIOErrorTitle=0x7f040007;
         public static final int rightVolLabel=0x7f040004;
+        public static final int serverCommError=0x7f040010;
+        public static final int serverCommErrorTitle=0x7f04000f;
+        public static final int serverConnectError=0x7f04000c;
+        public static final int serverConnectErrorTitle=0x7f04000b;
         public static final int serverLabel=0x7f040001;
+        public static final int setVolumeError=0x7f040012;
+        public static final int setVolumeErrorTitle=0x7f040011;
         public static final int submit=0x7f040005;
+        public static final int unknownHostError=0x7f04000e;
+        public static final int unknownHostErrorTitle=0x7f04000d;
+        public static final int writeIOError=0x7f04000a;
+        public static final int writeIOErrorTitle=0x7f040009;
     }
 }

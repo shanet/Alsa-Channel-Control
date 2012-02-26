@@ -1,7 +1,8 @@
 package com.shanet.alsa_control;
 
-import java.io.DataInputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -16,13 +17,16 @@ public class Server {
 	public int port;
 
     private Socket connSock = null;
-    //private BufferedReader recv = null;
-    private DataInputStream recv = null;
+    private BufferedReader recv = null;
     private PrintWriter send = null;
 
 	public Server(String host, int port) {
 		this.host = host;
 		this.port = port;
+		
+		// Init connSock without a host and port so that if isConnected() is called, it will
+		// return false rather than thrown a null pointer exception
+		connSock = new Socket();
 	}
 	
 	public Server(String host) {
@@ -41,8 +45,8 @@ public class Server {
            send = new PrintWriter(connSock.getOutputStream(), true);
 
            // Open read stream
-           //recv = new BufferedReader(new InputStreamReader(connSock.getInputStream()));
-           recv = new DataInputStream(connSock.getInputStream());
+           recv = new BufferedReader(new InputStreamReader(connSock.getInputStream()));
+           //recv = new DataInputStream(connSock.getInputStream());
 
            
            if(send != null && recv != null)
@@ -62,13 +66,14 @@ public class Server {
 
     public String receive() throws IOException {
     	// Only try to receive if recv isn't null
-    	String tmp = recv.readUTF();
     	if(recv != null)
-    		return tmp;
+    		return recv.readLine();
     	return "";
     }
 
-    public void closeConnection() throws IOException {
+    public void close() throws IOException {
+    	send.close();
+    	recv.close();
     	connSock.close();
     }
 

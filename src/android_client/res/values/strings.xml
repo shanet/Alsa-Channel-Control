@@ -7,12 +7,43 @@
     <string name="channelLabel">Channel:</string>
     <string name="leftVolLabel">Left Volume</string>
     <string name="rightVolLabel">Right Volume</string>
+    
     <string name="submit">Submit</string>
+    <string name="okay">Okay</string>
     
     <string-array name="channels">
         <item>Front</item>
         <item>PCM</item>
         <item>Main</item>
     </string-array>
+    
+    <string name="readIOErrorTitle">Read IO Error</string>
+    <string name="readIOError">There was an error reading the saved servers from the disk.</string>
+    <string name="writeIOErrorTitle">Write IO Error</string>
+    <string name="writeIOError">There was error writing the server to the saved servers list. It will not be saved.</string>
+    <string name="serverConnectErrorTitle">Network Error</string>
+    <string name="serverConnectError">Unable to connect to server.</string>
+    <string name="unknownHostErrorTitle">Network Error</string>
+    <string name="unknownHostError">The server provided could not be found on the network.</string>
+    <string name="serverCommErrorTitle">Server Error</string>
+    <string name="serverCommError">The server sent unexpected data or no data at all.</string>
+    <string name="setVolumeErrorTitle">Set Volume Error</string>
+    <string name="setVolumeError">An error occurred while setting the volume. Try again.</string>
+    
+   	<string name="aboutThisAppTitle">About This App</string>
+	<string name="aboutThisAppText">
+		<b>About this app</b>\n\t
+			TODO
+	
+		<b>License</b>\n\t
+			Open source.
+	</string>
+	
+	<string name="changelogTitle">Changelog</string>
+   	<string name="changelogText">
+   		<b>Current Version: 1.0.0</b>
+   		\n\n<b>1.0.0:</b>
+   			\n\t-Initial release! :D
+   	</string>
 
 </resources>
