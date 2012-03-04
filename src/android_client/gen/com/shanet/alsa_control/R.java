@@ -28,15 +28,13 @@ public final class R {
         public static final int channelLabel=0x7f060001;
         public static final int channelText=0x7f060004;
         public static final int leftVolLabel=0x7f060006;
-        public static final int leftVolLayout=0x7f060005;
-        public static final int leftVolPicker=0x7f060007;
+        public static final int leftVolPicker=0x7f060005;
         public static final int mainLayout=0x7f060000;
-        public static final int rightVolLabel=0x7f060009;
-        public static final int rightVolLayout=0x7f060008;
-        public static final int rightVolPicker=0x7f06000a;
+        public static final int rightVolLabel=0x7f060007;
+        public static final int rightVolPicker=0x7f060008;
         public static final int serverLabel=0x7f060002;
         public static final int serverText=0x7f060003;
-        public static final int submit=0x7f06000b;
+        public static final int submit=0x7f060009;
     }
     public static final class layout {
         public static final int autocomplete_item=0x7f030000;

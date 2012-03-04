@@ -37,7 +37,7 @@ public class Main extends Activity {
         channelText.setAdapter(channelAdapter);
         
         // Get the volume steps to be used in the number pickers below
-        final String[] volSteps = Utils.getVolumeSteps();
+        /*final String[] volSteps = Utils.getVolumeSteps();
         
         // Configure the left volume picker
         final NumberPicker leftVol = (NumberPicker) findViewById(R.id.leftVolPicker);
@@ -51,7 +51,7 @@ public class Main extends Activity {
         rightVol.setMaxValue(volSteps.length-1);
         rightVol.setMinValue(0);
         rightVol.setWrapSelectorWheel(false);
-        rightVol.setDisplayedValues(volSteps);
+        rightVol.setDisplayedValues(volSteps);*/
         
         // Set the submit button listener
         Button submit = (Button) findViewById(R.id.submit);
@@ -87,7 +87,7 @@ public class Main extends Activity {
 				}
 				
 				// Pull the current values from the UI and call the change volume method
-				changeVolume(channel, Integer.parseInt(volSteps[leftVol.getValue()]), Integer.parseInt(volSteps[rightVol.getValue()]));
+				//changeVolume(channel, Integer.parseInt(volSteps[leftVol.getValue()]), Integer.parseInt(volSteps[rightVol.getValue()]));
 			}
 		});
     }

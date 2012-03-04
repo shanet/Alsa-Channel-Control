@@ -22,7 +22,7 @@ CFLAGS=$(CLFLAGS) -c
 CLFLAGS=-I$(INCLUDE_PATHS) -Wall -Wextra -O2
 
 
-all: $(SERVER_BINARY) $(CLIENT_BINARY) $(ANDROID)
+all: server client android
 
 server: $(SERVER_OBJECTS)
 	$(CC) $(CLFLAGS) -o bin/$(SERVER_BINARY) $(SERVER_OBJECTS)
@@ -34,14 +34,21 @@ android:
 	ant -f src/android_client/build.xml
 	cp src/android_client/bin/android_client.apk bin/$(ANDROID_CLIENT_BINARY)
 
-install: $(SERVER_BINARY)
+install: server client
 	cp src/server/$(INITRD_SCRIPT) /etc/init.d/$(INITRD_SCRIPT)
 	chmod 744 /etc/init.d/$(INITRD_SCRIPT)
 	cp bin/$(SERVER_BINARY) /usr/sbin/$(SERVER_BINARY)
+	cp bin/$(CLIENT_BINARY) /usr/sbin/$(CLIENT_BINARY)
+
+install_android: android
+	adb -d install bin/${ANDROID_CLIENT_BINARY}
 
 remove:
 	rm /etc/init.d/alsa_server
 	rm /usr/sbin/alsa_server
+
+remove_android:
+	adb -d uninstall com.shanet.alsa_control
 
 .$(LANG).o:
 	$(CC) $(CFLAGS) $< -o $@

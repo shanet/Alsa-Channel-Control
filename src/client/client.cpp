@@ -2,75 +2,86 @@
 
 int main(int argc, char *argv[]) {
 
-   bool isVerbose = false;
-   string server = DEFAULT_CLIENT;
-   int port = DEFAULT_PORT;
-   vector<string> channels, vols;
+   string server = DEFAULT_CLIENT;    // Host to connect to
+   int port = DEFAULT_PORT;           // Port to connect to server on
+   vector<string> channels, vols;     // The given channels and volumes that will be sent to the server
+   char c;                            // Char for processing command line args
+   int optIndex;                      // Index of long opts for processing command line args
 
-   // If no arguments are given, assume client is localhost
-   if(argc > 1) {
-      // Parse the remaining command line args
-      for(unsigned short i=1; i<argc; i++) {
-         if(strcmp(argv[1], "--server") == 0 || strcmp(argv[1], "-s") == 0) {
-            // Make sure we're still in bounds
-            if(i+1 < argc) {
-               server = (string)argv[1];
-            } else {
-               cout  << "Server argument given without valid server" << endl;
-               return FAILURE;
-            }
+   // Set the program name we're running under and default verbose level
+   prog = argv[0];
+   verbose = NO_VERBOSE;
 
-         } else if(strcmp(argv[i], "--port") == 0 || strcmp(argv[i], "-p") == 0) {
-            // Make sure we're still in bounds
-            if(i+1 < argc) {
-               // Convert the given port to an int
-               port = atoi(argv[i+1]);
-            } else {
-               cout  << "Port argument given without valid port" << endl;
-               return FAILURE;
-            }
+   // Valid long options
+   static struct option longOpts[] = {
+      {"host", required_argument, NULL, 'H'},
+      {"port", required_argument, NULL, 'p'},
+      {"channel", required_argument, NULL, 'c'},
+      {"volume", required_argument, NULL, 'v'},
+      {"verbose", no_argument, NULL , 'V'},
+      {"version", no_argument, NULL, 'q'},
+      {"help", no_argument, NULL, 'h'}
+   };
 
-         } else if(strcmp(argv[i], "--channel") == 0 || strcmp(argv[i], "-c") == 0) {
-            // Make sure we're still in bounds
-            if(i+2 < argc) {
-               // Convert the given port to an int
-               channels.push_back(argv[i+1]);
-               vols.push_back(argv[i+2]);
-            } else if(i+1 < argc) {
-               cout  << "Channel argument given without valid volumes" << endl;
-               return FAILURE;
-            } else {
-               cout  << "Channel argument given without valid channel" << endl;
-               return FAILURE;
-            }
-
-         // Check for verbose
-         } else if(strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "-V") == 0) {
-            isVerbose = true;
-         // Check for version
-         } else if(strcmp(argv[i], "--version") == 0 || strcmp(argv[i], "-v") == 0) {
-            printVersion();
-            return NORMAL_EXIT;
-         // Check for help
-         } else if(strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+   // Parse the command line args
+   while((c = getopt_long(argc, argv, "hVH:p:c:v:", longOpts, &optIndex)) != -1) {
+      switch(c) {
+         // Print help
+         case 'h':
             printUsage();
             return NORMAL_EXIT;
-         }
+         // Print version
+         case 'q':
+            printVersion();
+            return NORMAL_EXIT;
+         // Set verbose level
+         case 'V':
+            verbose++;
+            break;
+         // The host to connect to
+         case 'H':
+            server = optarg;
+         // The port to start the server on
+         case 'p':
+            port = atoi(optarg);
+            break;
+         // Alsa channel to change
+         case 'c':
+            channels.push_back(optarg);
+            break;
+         // The volume to set
+         case 'v':
+            vols.push_back(optarg);
+            break;
+         // Invalid option
+         case '?':
+         default:
+            fprintf(stderr, "%s: Try \"%s -h\" for usage information.\n", prog, prog);
+            return ABNORMAL_EXIT;
       }
    }
 
+
+   // Check that there are equal number of channels and volumes
+   if(channels.size() != vols.size()) {
+      fprintf(stderr, "%s: Invalid number of channels for number of volumes given\n", prog);
+      return ABNORMAL_EXIT;
+   }
+
    // Init the client object
-   cout << server << " " << port << endl;
+   //printf("%s: server << " " << port << endl;
    Client client(server, port);
 
    // Connect to server
    if(client.connectToServer() != SUCCESS) {
-      cout << "Error connecting to server" << endl;
-      return FAILURE;
+      fprintf(stderr, "%s: Error connecting to server\n", prog);
+      return ABNORMAL_EXIT;
    }
 
    // Confirm connection
-   cout << "Connected to " << client.getServerIPAddress() << endl;
+   if(verbose >= VERBOSE) {
+      printf("%s: Connected to %s\n", prog, client.getServerIPAddress().c_str());
+   }
 
    stringstream command;
    string reply;
@@ -81,57 +92,61 @@ int main(int argc, char *argv[]) {
    if(reply.compare("helo\n") == 0) {
       // Send as many commands as there are in the channels vector
       for(unsigned int i=0; i<channels.size(); i++) {
-         // Construct the command to be sent
+         // Construct the command to be sent (clear the stringstream first though)
+         command.str("");
          command << channels[i] << "=" << vols[i];
 
-         if(isVerbose) {
-            cout << "Sending \"" << command.str() << "\" to server" << endl;
+         if(verbose >= VERBOSE) {
+            printf("%s: Sending \"%s\" to server\n", prog, command.str().c_str());
          }
 
          // Send the command to the server
          if(client.send(command.str()) == FAILURE) {
-            cout << "Error sending data to server";
+            fprintf(stderr, "%s: Error sending data to server\n", prog);
          }
 
-         if(isVerbose) {
-            cout << "Waiting for reply from server..." << endl;
+         if(verbose >= VERBOSE) {
+            printf("%s: Waiting for reply from server...\n", prog);
          }
 
          // Get server reply
          int recvLen = client.receive(&reply);
 
          if(recvLen == FAILURE) {
-            if(isVerbose) {
-               cout << "Communication error with server. Non-fatal." << endl;
+            if(verbose >= VERBOSE) {
+               printf("%s: Communication error with server. Non-fatal.\n", prog);
             }
             continue;
          // If no data was received, the server closed the connection
          } else if(recvLen == 0) {
-            cout << "Server unexpectedly closed connection" << endl;
+            printf("%s: Server unexpectedly closed connection\n", prog);
             break;
          // Did it work?!
          } else if(reply.compare("ok\n") == 0) {
-            if(isVerbose) {
-               cout << "Volume set successfully" << endl;
+            if(verbose >= VERBOSE) {
+               printf("%s: Volume set successfully\n", prog);
             }
          // Check if there was something wrong with setting the volume
          } else if(reply.compare("err\n") == 0) {
-            cout << "Error setting volume with command \"" << command.str() << "\"" << endl;
+            fprintf(stderr, "%s: Error setting volume with command \"%s\"\n", prog, command.str().c_str());
          // Check if server requested to end connection
          } else if(reply.compare("end\n") == 0) {
-            if(isVerbose) {
-               cout << "Server requested to close connection" << endl;
+            if(verbose >= VERBOSE) {
+               printf("%s: Server requested to close connection\n", prog);
             }
             break;
          }
       }
    } else {
-      if(isVerbose) {
-         cout << "Server did not send proper handshake" << endl;
+      if(verbose >= VERBOSE) {
+         fprintf(stderr, "%s: Server did not send proper handshake\n", prog);
       }
    }
 
-   cout << "Closing connection with server" << endl;
+   if(verbose >= VERBOSE) {
+      printf("%s: Closing connection with server\n", prog);
+   }
+
    client.send("end");
    client.closeConnection();
 
@@ -140,17 +155,17 @@ int main(int argc, char *argv[]) {
 
 
 void printUsage() {
-   cout << "Usage: " << NAME << " --server [server] --port [port] [options] --channel [channel] [leftVol],[rightVol]\n"
-        << "\t--server\t(-s)\tThe server to connect to (localhost if omitted)\n"
-        << "\t--port\t(-p)\tPort to connect on (" << DEFAULT_PORT << " if omitted)\n"
-        << "\t--channel\t(-c)\tThe Alsa channel to change\n"
-        << "\t--verbose\t(-V)\tIncrease verbosity\n"
-        << "\t--version\t(-v)\tPrint version\n"
-        << "\t--help\t\t(-h)\tDisplay this message"
-        << endl;
+   printf("%s: Usage: %s --host [host] --port [port] [options] --channel [channel] --volume [leftVol],[rightVol]\n\
+          --host\t(-H)\tThe server to connect to (localhost if omitted)\n\
+          --port\t(-p)\tPort to connect on (%d if omitted)\n\
+          --channel\t(-c)\tThe Alsa channel to change\n\
+          --volume\t(-v)\tThe volume to set (0-100%%)\n\
+          --verbose\t(-V)\tIncrease verbosity\n\
+          --version\t\tPrint version\n\
+          --help\t\t(-h)\tDisplay this message\n", prog, prog, DEFAULT_PORT);
 }
 
 
 void printVersion() {
-   cout << VERSION << endl;
+   printf("%s: %s\n", prog, VERSION);
 }

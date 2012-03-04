@@ -36,45 +36,41 @@
         android:layout_alignBottom="@id/channelLabel"
         android:singleLine="true"/>
     
-    <LinearLayout android:id="@+id/leftVolLayout"
+    <SeekBar android:id="@+id/leftVolPicker"
         android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:orientation="vertical"
-		android:layout_below="@id/channelText"
-		android:layout_marginTop="40dip">
-	    <TextView android:id="@+id/leftVolLabel"
-	        android:layout_width="wrap_content"
-	        android:layout_height="wrap_content"
-	        android:text="@string/leftVolLabel"/>
-	    <NumberPicker android:id="@+id/leftVolPicker"
-	   	    android:layout_width="wrap_content"
-	   	    android:layout_height="wrap_content"
-	   	    android:width="100dip"/>
-	</LinearLayout>
-	
-    <LinearLayout android:id="@+id/rightVolLayout"
+   	    android:layout_height="wrap_content"
+   	    android:layout_below="@id/channelText"
+   	    android:max="100"
+   	    android:minWidth="200dip"
+   	    android:progress="100"/>
+    
+    <TextView android:id="@+id/leftVolLabel"
         android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:orientation="vertical"
-		android:layout_below="@id/channelText"
-		android:layout_toRightOf="@id/leftVolLayout"
-		android:layout_alignParentRight="true"
+        android:layout_height="wrap_content"
 		android:layout_marginTop="40dip"
-		android:layout_marginLeft="40dip">
-	   	<TextView android:id="@+id/rightVolLabel"
-	        android:layout_width="wrap_content"
-	        android:layout_height="wrap_content"
-	        android:text="@string/rightVolLabel"/>
-	   	<NumberPicker android:id="@+id/rightVolPicker"
-	   	    android:layout_width="wrap_content"
-	   	    android:layout_height="wrap_content"
-	   	    android:width="100dip"/>
-	</LinearLayout>
+		android:layout_alignTop="@id/leftVolPicker"
+		android:layout_alignBottom="@id/leftVolPicker"
+		android:layout_toRightOf="@id/leftVolPicker"
+        android:text="@string/leftVolLabel"/>
+
+   	<TextView android:id="@+id/rightVolLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/leftVolLabel"
+		android:layout_marginTop="40dip"
+        android:text="@string/rightVolLabel"/>
+   	<SeekBar android:id="@+id/rightVolPicker"
+   	    android:layout_width="fill_parent"
+   	    android:layout_height="wrap_content"
+   	    android:layout_toRightOf="@id/rightVolLabel"
+   	    android:layout_alignBottom="@id/rightVolLabel"
+   	    android:max="100"
+   	    android:progress="100"/>
    	
    	<Button android:id="@+id/submit"
    	    android:layout_width="wrap_content"
    	    android:layout_height="wrap_content"
-   	    android:layout_below="@id/leftVolLayout"
+   	    android:layout_below="@id/rightVolLabel"
    	    android:layout_centerHorizontal="true"
    	    android:text="@string/submit"/>
 </RelativeLayout>
