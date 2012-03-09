@@ -58,4 +58,6 @@ remove_android:
 clean:
 	rm -f $(wildcard src/server/*.o)
 	rm -f $(wildcard src/client/*.o)
-	rm -f bin/{$(SERVER_BINARY),$(CLIENT_BINARY),$(ANDROID_CLIENT_BINARY)}
+	rm -f bin/$(SERVER_BINARY)
+	rm -f bin/$(CLIENT_BINARY)
+	rm -f bin/$(ANDROID_CLIENT_BINARY)
