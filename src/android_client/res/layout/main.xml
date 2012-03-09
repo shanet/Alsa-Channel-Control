@@ -1,76 +1,112 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/mainLayout"
-	android:layout_width="match_parent"
-	android:layout_height="wrap_content">
-	
-    <TextView android:id="@+id/channelLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
-    
-    <TextView android:id="@+id/serverLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:paddingTop="30dip"
-        android:layout_alignRight="@id/channelLabel"
-        android:text="@string/serverLabel"/>
-    <AutoCompleteTextView android:id="@+id/serverText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_toRightOf="@id/serverLabel"
-        android:layout_alignBottom="@id/serverLabel"
-        android:singleLine="true"
-        android:inputType="text"/>
-    
-    <TextView android:id="@id/channelLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/serverText"
-        android:paddingTop="30dip"
-        android:text="@string/channelLabel"/>
-    <AutoCompleteTextView android:id="@+id/channelText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@id/serverText"
-        android:layout_toRightOf="@id/channelLabel"
-        android:layout_alignBottom="@id/channelLabel"
-        android:singleLine="true"/>
-    
-    <SeekBar android:id="@+id/leftVolPicker"
-        android:layout_width="wrap_content"
-   	    android:layout_height="wrap_content"
-   	    android:layout_below="@id/channelText"
-   	    android:max="100"
-   	    android:minWidth="200dip"
-   	    android:progress="100"/>
-    
-    <TextView android:id="@+id/leftVolLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-		android:layout_marginTop="40dip"
-		android:layout_alignTop="@id/leftVolPicker"
-		android:layout_alignBottom="@id/leftVolPicker"
-		android:layout_toRightOf="@id/leftVolPicker"
-        android:text="@string/leftVolLabel"/>
 
-   	<TextView android:id="@+id/rightVolLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/leftVolLabel"
-		android:layout_marginTop="40dip"
-        android:text="@string/rightVolLabel"/>
-   	<SeekBar android:id="@+id/rightVolPicker"
-   	    android:layout_width="fill_parent"
-   	    android:layout_height="wrap_content"
-   	    android:layout_toRightOf="@id/rightVolLabel"
-   	    android:layout_alignBottom="@id/rightVolLabel"
-   	    android:max="100"
-   	    android:progress="100"/>
-   	
-   	<Button android:id="@+id/submit"
-   	    android:layout_width="wrap_content"
-   	    android:layout_height="wrap_content"
-   	    android:layout_below="@id/rightVolLabel"
-   	    android:layout_centerHorizontal="true"
-   	    android:text="@string/submit"/>
-</RelativeLayout>
+<!--
+alsa-control-server
+shane tully (shane@shanetully.com)
+shanetully.com
+https://github.com/shanet/Alsa-Channel-Control
+-->
+
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+	android:layout_height="fill_parent">
+	<RelativeLayout android:id="@+id/mainLayout"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content">
+		
+	    <!-- These views are referenced by other views before their usual declaration
+	         so they are declared here. Further implementation is inline below. -->
+	    <TextView android:id="@+id/channelLabel"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"/>
+	    
+	    <TextView android:id="@+id/serverLabel"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:paddingTop="25dip"
+	        android:layout_alignRight="@id/channelLabel"
+	        android:text="@string/serverLabel"/>
+	    <EditText android:id="@+id/serverText"
+	        android:layout_width="fill_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_toRightOf="@id/serverLabel"
+	        android:layout_alignBottom="@id/serverLabel"
+	        android:singleLine="true"
+	        android:inputType="text"
+	        android:focusable="false"/>
+	    
+	    <TextView android:id="@id/channelLabel"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_below="@id/serverText"
+	        android:paddingTop="25dip"
+	        android:text="@string/channelLabel"/>
+	    <EditText android:id="@+id/channelText"
+	        android:layout_width="fill_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_alignLeft="@id/serverText"
+	        android:layout_toRightOf="@id/channelLabel"
+	        android:layout_alignBottom="@id/channelLabel"
+	        android:singleLine="true"
+	        android:inputType="text"
+	        android:focusable="false"/>
+	    
+	    <RelativeLayout android:id="@+id/leftVolLayout"
+	        android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:layout_below="@id/channelText"
+			android:layout_marginTop="40dip">
+			
+		    <TextView android:id="@+id/leftVolLabel"
+		        android:layout_width="wrap_content"
+		        android:layout_height="wrap_content"
+		        android:layout_centerVertical="true"
+		        android:layout_marginLeft="8dip"
+		        android:text="@string/leftVolLabel"/>
+		    <SeekBar android:id="@+id/leftVolPicker"
+		   	    android:layout_width="fill_parent"
+		   	    android:layout_height="wrap_content"
+		   	    android:layout_toRightOf="@id/leftVolLabel"
+		   	    android:layout_centerVertical="true"
+		   	    android:progress="100"
+		   	    android:max="100"/>
+		</RelativeLayout>
+		
+	    <RelativeLayout android:id="@+id/rightVolLayout"
+	        android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:layout_below="@id/leftVolLayout"
+			android:layout_alignParentRight="true"
+			android:layout_marginTop="40dip">
+		    
+		   	<TextView android:id="@+id/rightVolLabel"
+		        android:layout_width="wrap_content"
+		        android:layout_height="wrap_content"
+		        android:layout_centerVertical="true"
+		        android:text="@string/rightVolLabel"/>
+		   	<SeekBar android:id="@+id/rightVolPicker"
+		   	    android:layout_width="fill_parent"
+		   	    android:layout_height="wrap_content"
+		   	   	android:layout_toRightOf="@id/rightVolLabel"
+		   	    android:layout_centerVertical="true"
+		   	    android:progress="100"
+		   	    android:max="100"/>
+		</RelativeLayout>
+	   	
+	   	<Button android:id="@+id/submit"
+	   	    android:layout_width="wrap_content"
+	   	    android:layout_height="wrap_content"
+	   	    android:layout_below="@id/rightVolLayout"
+	   	    android:layout_alignParentRight="true"
+	   	    android:layout_marginTop="5dip"
+	   	    android:text="@string/submit"/>
+	   	
+	    <CheckBox android:id="@+id/lockVolumes"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignParentLeft="true"
+	        android:layout_alignBaseline="@id/submit"
+	        android:text="@string/lockLabel"
+	        android:checked="true"/>
+	</RelativeLayout>
+</ScrollView>

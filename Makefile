@@ -4,11 +4,11 @@
 CC=g++
 LANG=cpp
 
-SERVER_BINARY=alsa_server
-CLIENT_BINARY=alsa_client
-ANDROID_CLIENT_BINARY=android_client.apk
+SERVER_BINARY=alsa-server
+CLIENT_BINARY=alsa-client
+ANDROID_CLIENT_BINARY=android-client.apk
 
-INITRD_SCRIPT=alsa_server
+INITRD_SCRIPT=alsa-server
 
 SERVER_SOURCES=$(wildcard src/server/*.h) $(wildcard src/server/*.cpp)
 CLIENT_SOURCES=$(wildcard src/client/*.h) $(wildcard src/client/*.cpp)
@@ -31,7 +31,7 @@ client: $(CLIENT_OBJECTS)
 	$(CC) $(CLFLAGS) -o bin/$(CLIENT_BINARY) $(CLIENT_OBJECTS)
 
 android:
-	ant -f src/android_client/build.xml
+	ant -f src/android_client/build.xml debug
 	cp src/android_client/bin/android_client.apk bin/$(ANDROID_CLIENT_BINARY)
 
 install: server client

@@ -1,3 +1,8 @@
+// alsa-control-server
+// shane tully (shane@shanetully.com)
+// shanetully.com
+// https://github.com/shanet/Alsa-Channel-Control
+
 #include "Client.h"
 #include <iostream>
 
@@ -94,7 +99,7 @@ int Client::send(string data) {
 int Client::receive(string *reply) {
    char *tmpReply = new char[BUFFER];
 
-   int recvLen = recv(connSock, tmpReply, BUFFER, 0);
+   int recvLen = recv(connSock, tmpReply, BUFFER-1, 0);
 
    // Add null terminator only if recvLen is >= 0 to avoid going out of bounds
    if(recvLen >= 0) {
@@ -103,6 +108,7 @@ int Client::receive(string *reply) {
    }
 
    delete tmpReply;
+   tmpReply = NULL;
 
    return recvLen;
 }

@@ -1,3 +1,8 @@
+// alsa-control-server
+// shane tully (shane@shanetully.com)
+// shanetully.com
+// https://github.com/shanet/Alsa-Channel-Control
+
 #include "client.h"
 
 int main(int argc, char *argv[]) {
@@ -86,10 +91,24 @@ int main(int argc, char *argv[]) {
    stringstream command;
    string reply;
 
-   // Get initial welcome from server
-   client.receive(&reply);
+   try {
+      // Get initial welcome from server
+      client.receive(&reply);
+      if(reply.compare("helo\n") != 0) {
+         throw FAILURE;
+      }
 
-   if(reply.compare("helo\n") == 0) {
+      // Complete handshake
+      if(client.send("helo\n") == FAILURE) {
+         throw FAILURE;
+      }
+
+      // Wait for the ready command to start sending volume commands
+      client.receive(&reply);
+      if(reply.compare("redy\n") != 0) {
+         throw FAILURE;
+      }
+
       // Send as many commands as there are in the channels vector
       for(unsigned int i=0; i<channels.size(); i++) {
          // Construct the command to be sent (clear the stringstream first though)
@@ -103,6 +122,7 @@ int main(int argc, char *argv[]) {
          // Send the command to the server
          if(client.send(command.str()) == FAILURE) {
             fprintf(stderr, "%s: Error sending data to server\n", prog);
+            throw FAILURE;
          }
 
          if(verbose >= VERBOSE) {
@@ -116,11 +136,11 @@ int main(int argc, char *argv[]) {
             if(verbose >= VERBOSE) {
                printf("%s: Communication error with server. Non-fatal.\n", prog);
             }
-            continue;
+            throw FAILURE;
          // If no data was received, the server closed the connection
          } else if(recvLen == 0) {
             printf("%s: Server unexpectedly closed connection\n", prog);
-            break;
+            throw FAILURE;
          // Did it work?!
          } else if(reply.compare("ok\n") == 0) {
             if(verbose >= VERBOSE) {
@@ -129,15 +149,16 @@ int main(int argc, char *argv[]) {
          // Check if there was something wrong with setting the volume
          } else if(reply.compare("err\n") == 0) {
             fprintf(stderr, "%s: Error setting volume with command \"%s\"\n", prog, command.str().c_str());
+            throw FAILURE;
          // Check if server requested to end connection
          } else if(reply.compare("end\n") == 0) {
             if(verbose >= VERBOSE) {
                printf("%s: Server requested to close connection\n", prog);
             }
-            break;
+            throw FAILURE;
          }
       }
-   } else {
+   } catch (int exception) {
       if(verbose >= VERBOSE) {
          fprintf(stderr, "%s: Server did not send proper handshake\n", prog);
       }

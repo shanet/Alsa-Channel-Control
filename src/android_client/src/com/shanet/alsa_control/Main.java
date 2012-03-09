@@ -1,220 +1,208 @@
+// alsa-control-server
+// shane tully (shane@shanetully.com)
+// shanetully.com
+// https://github.com/shanet/Alsa-Channel-Control
+
 package com.shanet.alsa_control;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 import android.app.Activity;
-import android.content.ContextWrapper;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
-import android.os.Looper;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
 import android.widget.Button;
-import android.widget.NumberPicker;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.SeekBar;
+import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.Toast;
 
 public class Main extends Activity {
 	
-	Server server = null;
-	ArrayList<String> serverList = null;
+	public static ArrayList<String> serverList = null;
+	public static ArrayList<String> channelList = null;
 	
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+                
+        // Checking if this is the first run and if it is, write the corresponding values to the prefs.
+        if(getSharedPreferences(Constants.SETTINGS_FILE, 0).getBoolean("onFirstRun", true)) {			
+          	AlertDialog welcomeDialog = DialogUtils.createAboutDialog(this, Constants.ABOUT_THIS_APP);
+          	welcomeDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+				public void onDismiss(DialogInterface dialog) {
+					try {
+						VersionUtils.writeOnFirstRun(Main.this);
+					// An IO excpetion means the default channels couldn't be written to the file. This isn't
+					// a problem now, but could be later. Let the later stuff deal with it.
+					} catch (IOException ioe) {}
+					
+					VersionUtils.writeVersionCode(Main.this);
+				}
+			});
+          	welcomeDialog.setTitle(R.string.welcomeTitle);
+          	welcomeDialog.show();
+			
+        // Display the release notes if this is a new version
+        } else if(VersionUtils.compareVersionCode(this)) {
+          	AlertDialog changelogDialog = DialogUtils.createAboutDialog(this, Constants.CHANGELOG);
+          	changelogDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+				public void onDismiss(DialogInterface dialog) {
+					VersionUtils.writeVersionCode(Main.this);
+				}
+			});
+          	changelogDialog.setTitle(R.string.changelogTitle);
+          	changelogDialog.show();
+        }
         
-        // Configure the server list text view
-        final File serverIOFile = new File(new ContextWrapper(this).getFilesDir().getPath() + File.separatorChar + "servers.txt");
-        setupServerTextView(serverIOFile);
+        if(savedInstanceState == null) {
+            // Init the server and channel lists
+        	serverList = new ArrayList<String>();
+        	channelList = new ArrayList<String>();
+        } else {
+        	// The server and channel lists are saved; restore them
+        	onRestoreInstanceState(savedInstanceState);
+        }
         
-		// Configure the channel list text view
-        AutoCompleteTextView channelText = (AutoCompleteTextView) findViewById(R.id.channelText);
-        ArrayAdapter<String> channelAdapter = new ArrayAdapter<String>(this, R.layout.autocomplete_item, getResources().getStringArray(R.array.channels));
-        channelText.setAdapter(channelAdapter);
+        EditText serverText = (EditText) findViewById(R.id.serverText);
+        EditText channelText = (EditText) findViewById(R.id.channelText);
+        final CheckBox lockCheck = (CheckBox) findViewById(R.id.lockVolumes);
+        final SeekBar leftVol = (SeekBar) findViewById(R.id.leftVolPicker);
+        final SeekBar rightVol = (SeekBar) findViewById(R.id.rightVolPicker);
         
-        // Get the volume steps to be used in the number pickers below
-        /*final String[] volSteps = Utils.getVolumeSteps();
+        // Lock the seekbars if the checkbox is checked	
+        OnSeekBarChangeListener lockVolListener = new OnSeekBarChangeListener() {
+			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+				if(lockCheck.isChecked()) {
+					if(seekBar == leftVol)
+						rightVol.setProgress(leftVol.getProgress());
+					else
+						leftVol.setProgress(rightVol.getProgress());
+				}
+			}
+			
+        	public void onStopTrackingTouch(SeekBar seekBar) {}
+			public void onStartTrackingTouch(SeekBar seekBar) {}
+		};
         
-        // Configure the left volume picker
-        final NumberPicker leftVol = (NumberPicker) findViewById(R.id.leftVolPicker);
-        leftVol.setMaxValue(volSteps.length-1);
-        leftVol.setMinValue(0);
-        leftVol.setWrapSelectorWheel(false);
-        leftVol.setDisplayedValues(volSteps);
+        leftVol.setOnSeekBarChangeListener(lockVolListener);
+        rightVol.setOnSeekBarChangeListener(lockVolListener);
         
-        // Configure the right volume picker
-        final NumberPicker rightVol = (NumberPicker) findViewById(R.id.rightVolPicker);
-        rightVol.setMaxValue(volSteps.length-1);
-        rightVol.setMinValue(0);
-        rightVol.setWrapSelectorWheel(false);
-        rightVol.setDisplayedValues(volSteps);*/
+        // Get the server(s) to use
+		final Intent selectIntent = new Intent(Main.this, SelectDialog.class);
+        serverText.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				selectIntent.putExtra("dialogType", Constants.SERVERS);
+				startActivity(selectIntent);
+			}
+		});
+        
+        // Get the channel(s) to use
+        channelText.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				selectIntent.putExtra("dialogType", Constants.CHANNELS);
+				startActivity(selectIntent);	
+			}
+		});
         
         // Set the submit button listener
         Button submit = (Button) findViewById(R.id.submit);
         submit.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				String server = ((AutoCompleteTextView)findViewById(R.id.serverText)).getText().toString();
-				String channel = ((AutoCompleteTextView)findViewById(R.id.channelText)).getText().toString();
+			public void onClick(View v) {								
+				// Check for empty server and channel lists
+				if(serverList.isEmpty()) {
+					Toast.makeText(Main.this, R.string.emptyServer, Toast.LENGTH_LONG).show();
+					return;
+				} else if(channelList.isEmpty()) {
+					Toast.makeText(Main.this, R.string.emptyChannel, Toast.LENGTH_LONG).show();
+					return;
+				}
 				
-				// Check if server is already in the server list
-				boolean wasFound = false;
+				SeekBar leftVol = (SeekBar) findViewById(R.id.leftVolPicker);
+				SeekBar rightVol = (SeekBar) findViewById(R.id.rightVolPicker);
+				
+				int port = Utils.getIntPref(Main.this, "port");
+				
+				// Send the volumes to each channel to each server
 				for(int i=0; i<serverList.size(); i++) {
-					if(serverList.get(i).equals(server)) {
-						wasFound = true;
-					}
+					Utils.changeVolume(Main.this, serverList.get(i), port, channelList, leftVol.getProgress(), rightVol.getProgress());
 				}
-				
-				// Add the new server if it was not found in the server list
-				if(!wasFound) {
-					try {
-						Utils.addServer(serverIOFile, server);
-					} catch (IOException e) {
-						Utils.displayErrorDialog(Main.this, R.string.writeIOErrorTitle, R.string.writeIOError);
-						e.printStackTrace();
-					}
-					
-					// Reload the server list
-					setupServerTextView(serverIOFile);
-				}
-				
-				// Init server if necessary
-				if(Main.this.server == null) {
-					Main.this.server = new Server(server, 4242);
-				}
-				
-				// Pull the current values from the UI and call the change volume method
-				//changeVolume(channel, Integer.parseInt(volSteps[leftVol.getValue()]), Integer.parseInt(volSteps[rightVol.getValue()]));
 			}
 		});
     }
 	
 	
 	@Override
-	public void onDestroy() {
-		super.onDestroy();
-		
-		try {
-			// If the server is connected, close the connection gracefully
-			if(server.isConnected()) {
-				server.send("end");
-				server.close();
-			}
-		} catch(IOException ioe) {
-			ioe.printStackTrace();
-		} catch(NullPointerException npe) {
-			// If server wasn't initialized, catch it and move on
-		}
+	public void onResume() {
+		super.onResume(); 
+		reloadLists();
 	}
 
-
-	public void changeVolume(final String channel, final int leftVol, final int rightVol) {
-    	Thread thread = new Thread(new Runnable() {
-			public void run() {
-				Looper.prepare();
-				
-				String reply = "";
-				
-				try {
-					// Connect to the server if not already connected
-					if(!server.isConnected()) {
-						server.connect();
-					
-						// Ensure we're connected now
-						if(!server.isConnected()) {
-							runOnUiThread(new Runnable() {
-								public void run() {
-									Utils.displayErrorDialog(Main.this, R.string.serverConnectErrorTitle, R.string.serverConnectError);
-								}
-							});
-							return;
-						}
-						
-						// Get the server's welcome message
-						reply = server.receive();
-						
-						// Check the server sent the welcome message
-						if(reply.equals("helo")) {
-							server.send("helo");
-						} else {
-							runOnUiThread(new Runnable() {
-								public void run() {
-									Utils.displayErrorDialog(Main.this, R.string.serverCommErrorTitle, R.string.serverCommError);
-								}
-							});
-							
-							// Something is wrong. Disconnect from the server to retry if this function is called again
-							server.close();
-							return;
-						}
-					}
-					
-
-					
-					// Send the change volume command
-					server.send(channel + "=" + leftVol + "," + rightVol);
-					
-					// Check for confirmation of changed volume
-					if(server.receive().equals("ok")) {
-						runOnUiThread(new Runnable() {
-							public void run() {
-								Toast.makeText(Main.this, "Volume Set", Toast.LENGTH_LONG).show();
-							}
-						});
-					} else {
-						runOnUiThread(new Runnable() {
-							public void run() {
-								Utils.displayErrorDialog(Main.this, R.string.setVolumeErrorTitle, R.string.setVolumeError);
-							}
-						});
-					}					
-					
-				} catch (UnknownHostException uhe) {
-					runOnUiThread(new Runnable() {
-						public void run() {
-							Utils.displayErrorDialog(Main.this, R.string.unknownHostErrorTitle, R.string.unknownHostError);
-						}
-					});
-					uhe.printStackTrace();
-				} catch (IOException ioe) {
-					runOnUiThread(new Runnable() {
-						public void run() {
-							Utils.displayErrorDialog(Main.this, R.string.serverCommErrorTitle, R.string.serverCommError);
-						}
-					});
-					ioe.printStackTrace();
-				} catch (NullPointerException npe) {
-					runOnUiThread(new Runnable() {
-						public void run() {
-							Utils.displayErrorDialog(Main.this, R.string.serverCommErrorTitle, R.string.serverCommError);
-						}
-					});
-					npe.printStackTrace();
-				}
-			}
-		});
+	
+	@Override
+	public void onStop() {
+		super.onStop(); 
+		// This must be overridden for the save instance state function to be called for whatever reason
+	}
+	
+	
+	@Override
+	public void onSaveInstanceState(Bundle savedInstanceState) {
+		super.onSaveInstanceState(savedInstanceState);
 		
-    	// Let's a go!
-		thread.start();
-    }
+		// Save the server and channel lists and current volume positions
+		savedInstanceState.putStringArrayList("serverList", serverList);
+		savedInstanceState.putStringArrayList("channelList", channelList);
+	}
 	
 	
-	public void setupServerTextView(File serverIOFile) {
-		// Load known servers into the server list array
-		try {
-			serverList = Utils.getServers(serverIOFile);
-		} catch (IOException e) {
-			Utils.displayErrorDialog(this, R.string.readIOErrorTitle, R.string.readIOError);
-			e.printStackTrace();
-		}
-        
-        // Configure the server list text view
-        AutoCompleteTextView serverText = (AutoCompleteTextView) findViewById(R.id.serverText);
-        ArrayAdapter<String> serverAdapter = null;
-		serverAdapter = new ArrayAdapter<String>(this, R.layout.autocomplete_item, serverList);
-		serverText.setAdapter(serverAdapter);
+	@Override
+	public void onRestoreInstanceState(Bundle savedInstanceState) {
+		super.onRestoreInstanceState(savedInstanceState);
+		
+		// Copy the server and channel lists back to the class objects
+		serverList = savedInstanceState.getStringArrayList("serverList");
+		channelList = savedInstanceState.getStringArrayList("channelList");
+	}
+	
+	
+	@Override 
+	public boolean onCreateOptionsMenu(Menu menu) {
+		return Utils.onCreateOptionsMenu(this, menu);
+	}
+
+	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		return Utils.onOptionsItemSelected(this, item);
+	}
+	
+	
+	private void reloadLists() {
+		// Reload the server and channel text fields
+		EditText serverText = (EditText) findViewById(R.id.serverText);
+		EditText channelText = (EditText) findViewById(R.id.channelText);
+
+		// Clear the current text
+		serverText.setText("");
+		channelText.setText("");
+		
+		if(serverList.size() != 0)
+			serverText.setText(serverList.get(0));
+		if(channelList.size() != 0)
+			channelText.setText(channelList.get(0));
+		
+		for(int i=1; i<serverList.size(); i++)
+			serverText.setText(serverText.getText().toString() + ", " + serverList.get(i));
+		for(int i=1; i<channelList.size(); i++)
+			channelText.setText(channelText.getText().toString() + ", " + channelList.get(i));
 	}
 }

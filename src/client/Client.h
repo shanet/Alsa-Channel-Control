@@ -1,3 +1,8 @@
+// alsa-control-server
+// shane tully (shane@shanetully.com)
+// shanetully.com
+// https://github.com/shanet/Alsa-Channel-Control
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>

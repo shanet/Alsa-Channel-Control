@@ -1,20 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
 
+<!--
+alsa-control-server
+shane tully (shane@shanetully.com)
+shanetully.com
+https://github.com/shanet/Alsa-Channel-Control
+-->
+
+<resources>
     <string name="app_name">Alsa Control Android Client</string>
     
     <string name="serverLabel">Server:</string>
     <string name="channelLabel">Channel:</string>
-    <string name="leftVolLabel">Left Volume</string>
-    <string name="rightVolLabel">Right Volume</string>
+    <string name="portLabel">Port:</string>
+    <string name="portMenuLabel">Set Port</string>
+    <string name="leftVolLabel">Left Volume:</string>
+    <string name="rightVolLabel">Right Volume:</string>
+    <string name="lockLabel">Lock Volumes</string>
+    
+    <string name="addServer">Add Server</string>
+    <string name="addChannel">Add Channel</string>
+    <string name="editPort">Edit Port</string>
+    
+    <string name="deleteServerTitle">Delete Server</string>
+    <string name="deleteChannelTitle">Delete Channel</string>
+    <string name="deleteDialog">Are you sure you want to delete \"%s\"?</string>
+    
+    <string name="emptyServer">No server(s) selected!</string>
+    <string name="emptyChannel">No channel(s) selected!</string>
+    <string name="emptyAddServer">Server cannot be blank!</string>
+    <string name="emptyAddChannel">Channel cannot be blank!</string>
+    <string name="emptyPort">Port cannot be blank!</string>
     
     <string name="submit">Submit</string>
     <string name="okay">Okay</string>
+    <string name="yes">Yes</string>
+    <string name="nope">Nope</string>
+    <string name="nevermind">Nevermind</string>
+ 	<string name="cancel">Cancel</string>
+ 	<string name="close">Close</string>
+	<string name="exitBtn">Exit</string>
+	<string name="no">No!</string>
+	<string name="save">Save</string>
+    <string name="whatsnew">What\'s New</string>
+    <string name="about">About</string>
+    <string name="nullStr">null</string>
+    <string name="volumeSet">Volume Changed</string>
     
     <string-array name="channels">
+        <item>Master</item>
         <item>Front</item>
         <item>PCM</item>
-        <item>Main</item>
     </string-array>
     
     <string name="readIOErrorTitle">Read IO Error</string>
@@ -30,13 +66,24 @@
     <string name="setVolumeErrorTitle">Set Volume Error</string>
     <string name="setVolumeError">An error occurred while setting the volume. Try again.</string>
     
+    <string name="welcomeTitle">Welcome!</string>
    	<string name="aboutThisAppTitle">About This App</string>
 	<string name="aboutThisAppText">
 		<b>About this app</b>\n\t
-			TODO
+			This app is a simple client for changing the volume on a computer running Alsa (aka mainly Linux systems). To use it you must have the server
+			installed and running on your computer with your firewall configured properly on the default port, 4242.\n\n
+			
+			The source for the server, this application, and a desktop client, can be found on GitHub at https://github.com/shanet/Alsa-Channel-Control.
+			
+			There are a few default channels included, but you\'ll likely want to add your own. You can find channels by running \"alsamixer\" on your computer
+			in a terminal. Note that channels are case sensitive.
+			
+			Any bugs or feature requests should be made at the GitHub page linked to above.
 	
-		<b>License</b>\n\t
-			Open source.
+		\n\n<b>License</b>\n\t
+			This application is open source software. It is free to distribute, modify, and use with the exception of it being made closed source and sold for 
+			commercial purposes without the consent of the author. However, the author simply requests that if you do something cool with it, you let him check 
+			it out by emailing shane@shanetully.com or just let him know you find it useful.
 	</string>
 	
 	<string name="changelogTitle">Changelog</string>

@@ -1,3 +1,8 @@
+// alsa-control-server
+// shane tully (shane@shanetully.com)
+// shanetully.com
+// https://github.com/shanet/Alsa-Channel-Control
+
 package com.shanet.alsa_control;
 
 import java.io.BufferedReader;
@@ -46,8 +51,6 @@ public class Server {
 
            // Open read stream
            recv = new BufferedReader(new InputStreamReader(connSock.getInputStream()));
-           //recv = new DataInputStream(connSock.getInputStream());
-
            
            if(send != null && recv != null)
               return SUCCESS;
