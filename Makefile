@@ -1,5 +1,7 @@
-# shane tully
+# alsa-control-server
+# shane tully (shane@shanetully.com)
 # shanetully.com
+# https://github.com/shanet/Alsa-Channel-Control
 
 CC=g++
 LANG=cpp

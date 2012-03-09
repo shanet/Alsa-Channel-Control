@@ -32,6 +32,18 @@ sudo service alsa-server start
 Either use the client (alsa-client) or the Android application to communicate with the server.
 
 See "alsa-client -h" and "alsa-server -h" for specific usage info.
+=======
+Alsa_Control
+Author: Shane Tully
+shanetully.com
+
+
+Usage
+================
+alsa_control [channel]=[left volume],[right_volume]
+
+Multiple channels are supported and are case sensititive
+Alsa will output an error if an invalid channel is used
 
 
 Support
