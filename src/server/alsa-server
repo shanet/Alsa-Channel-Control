@@ -1,0 +1,61 @@
+#!/bin/bash
+#
+# alsa-control-server
+# shane tully (shane@shanetully.com)
+# shanetully.com
+# https://github.com/shanet/Alsa-Channel-Control
+
+### BEGIN INIT INFO
+# Provides:          alsa_server
+# Required-Start:    $network
+# Required-Stop:
+# Default-Start:     3 5
+# Default-Stop:      0 1 2 6
+# Short-Description: Allows for changing alsa volume over the network
+# Description:       Alsa-Server is a simple server that passes
+#                    commands to Alsa
+### END INIT INFO
+
+BIN_PATH=/usr/sbin/
+BINARY=alsa-server
+
+export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
+
+start() {
+        echo "Starting $BINARY..."
+        start-stop-daemon --start --exec $BIN_PATH$BINARY
+}
+
+stop() {
+        echo "Stopping $BINARY..."
+        start-stop-daemon --stop --name $BINARY
+}
+
+
+# Make sure the binary is present
+test -x $BIN_PATH$BINARY || {
+   echo "$BINARY not installed";
+   exit 1;
+}
+
+# Determine what to do
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  status)
+        status $BINARY
+        ;;
+  restart|reload)
+        stop
+        start
+        ;;
+  *)
+        echo $"Usage: $0 {start|stop|restart|reload|status}"
+        exit 1
+esac
+
+exit 0
