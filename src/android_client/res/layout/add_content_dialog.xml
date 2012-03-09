@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+alsa-control-server
+shane tully (shane@shanetully.com)
+shanetully.com
+https://github.com/shanet/Alsa-Channel-Control
+-->
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical" >
+    
+    <TextView android:id="@+id/addContentLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_marginRight="10dip"
+        android:text="@string/nullStr"/>
+        
+    <EditText android:id="@+id/addContentEdit"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/addContentLabel"
+        android:layout_centerVertical="true"
+        android:singleLine="true"
+        android:maxLength="100"
+        android:inputType="text"/>
+</RelativeLayout>
