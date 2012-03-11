@@ -4,31 +4,37 @@
 # shanetully.com
 # https://github.com/shanet/Alsa-Channel-Control
 
-SERVER_BINARY=bin/alsa-server
-CLIENT_BINARY=bin/alsa-client
-ANDROID_BINARY=bin/android-client.apk
+SERVER_BINARY=alsa-server
+CLIENT_BINARY=alsa-client
+ANDROID_BINARY=android-client.apk
 INIT_SCRIPT=alsa-server
+
+INSTALL_DIR=/usr/sbin/
+
+echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
+echo "    Alsa Server install script     "
+echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-="
 
 # Force root
 if [ "$(id -u)" != "0" ]; then
-   echo "You must be root!" 1>&2
+   echo "We have to copy binaries into $INSTALL_DIR. You must be root!" 1>&2
    exit 1
 fi
 
 echo "Installing server..."
-cp $SERVER_BINARY /usr/sbin/$SERVER_BINARY
+cp bin/$SERVER_BINARY $INSTALL_DIR$SERVER_BINARY
 echo "Installing client..."
-cp $CLIENT_BINARY /usr/sbin/$CLIENT_BINARY
+cp bin/$CLIENT_BINARY $INSTALL_DIR$CLIENT_BINARY
 echo "Installing startup script..."
-cp  /etc/init.d/$INIT_SCRIPT
+cp  $INIT_SCRIPT /etc/init.d/$INIT_SCRIPT
 echo "Setting startup script permissions..."
 chmod 744 /etc/init.d/$INIT_SCRIPT
 
 echo -n "Install Android client? (y,N) "
 read android
 
-if[ $android -eq "y" || $android -eq "Y" ]; then
-    echo "Make sure your Android device is plugged in to your computer and is configured to sideload apps. Press enter to continue."
+if [[ $android = "y" || $android = "Y" ]] ; then
+    echo -n "Make sure your Android device is plugged in to your computer and is configured to sideload apps. Press enter to continue."
     read junk
     adb -d install $ANDROID_CLIENT
 fi
@@ -37,7 +43,7 @@ echo "Installation finished. Use \"sudo service alsa-server start\" to start the
 echo -n "Start server now? (y,N) "
 read start
 
-if[ $start -eq "y" || $start -eq "Y" ]; then
+if [[ $start = "y" || $start = "Y" ]] ; then
     service $INIT_SCRIPT start
 fi
 

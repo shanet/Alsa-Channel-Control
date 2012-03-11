@@ -14,7 +14,7 @@
 
 
 #define NAME "Alsa Control Client"
-#define VERSION "3.0.0-beta"
+#define VERSION "3.1.0-beta"
 
 #define DEFAULT_CLIENT "127.0.0.1"
 #define DEFAULT_PORT 4242

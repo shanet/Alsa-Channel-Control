@@ -11,8 +11,12 @@ SERVER_BINARY=alsa-server
 CLIENT_BINARY=alsa-client
 ANDROID_CLIENT_BINARY=android-client.apk
 INIT_SCRIPT=alsa-server
+
 INSTALL_SCRIPT=install.sh
-TAR=alsa-server.tar.gz
+UNINSTALL_SCRIPT=uninstall.sh
+
+INSTALL_DIR=/usr/sbin/
+BIN_TAR=alsa-server-bin.tar.gz
 
 SERVER_SOURCES=$(wildcard src/server/*.h) $(wildcard src/server/*.cpp)
 CLIENT_SOURCES=$(wildcard src/client/*.h) $(wildcard src/client/*.cpp)
@@ -41,29 +45,38 @@ android:
 install: server client
 	cp src/server/$(INIT_SCRIPT) /etc/init.d/$(INIT_SCRIPT)
 	chmod 744 /etc/init.d/$(INIT_SCRIPT)
-	cp bin/$(SERVER_BINARY) /usr/sbin/$(SERVER_BINARY)
-	cp bin/$(CLIENT_BINARY) /usr/sbin/$(CLIENT_BINARY)
+	cp bin/$(SERVER_BINARY) $(INSTALL_DIR)$(SERVER_BINARY)
+	cp bin/$(CLIENT_BINARY) $(INSTALL_DIR)$(CLIENT_BINARY)
 
 install_android: android
 	adb -d install bin/${ANDROID_CLIENT_BINARY}
 
 remove:
-	rm /etc/init.d/alsa_server
-	rm /usr/sbin/alsa_server
+	service $(INIT_SCRIPT) stop
+	rm $(INSTALL_DIR)$(SERVER_BINARY)
+	rm $(INSTALL_DIR)$(CLIENT_BINARY)
+	rm /etc/init.d/$(INIT_SCRIPT)
+
 
 remove_android:
 	adb -d uninstall com.shanet.alsa_control
 
-tar: all
+bin_tar: all
 	mkdir -p $(PROJ_NAME)/bin
 	cp bin/$(SERVER_BINARY) $(PROJ_NAME)/bin/$(SERVER_BINARY)
 	cp bin/$(CLIENT_BINARY) $(PROJ_NAME)/bin/$(CLIENT_BINARY)
 	cp bin/$(ANDROID_CLIENT_BINARY) $(PROJ_NAME)/bin/$(ANDROID_CLIENT_BINARY)
 	cp src/server/$(INIT_SCRIPT) $(PROJ_NAME)/$(INIT_SCRIPT)
+
 	cp src/$(INSTALL_SCRIPT) $(PROJ_NAME)/$(INSTALL_SCRIPT)
+	cp src/$(UNINSTALL_SCRIPT) $(PROJ_NAME)/$(UNINSTALL_SCRIPT)
+	chmod 774 $(PROJ_NAME)/$(INSTALL_SCRIPT) $(PROJ_NAME)/$(UNINSTALL_SCRIPT)
+	
 	cp README $(PROJ_NAME)
 	cp CHANGELOG $(PROJ_NAME)
-	tar -czf bin/$(TAR) $(PROJ_NAME)
+	
+	tar -czf $(BIN_TAR) $(PROJ_NAME)
+	
 	rm -rf $(PROJ_NAME)
 
 .$(LANG).o:
@@ -73,4 +86,4 @@ clean:
 	rm -f $(wildcard src/server/*.o)
 	rm -f $(wildcard src/client/*.o)
 	rm -f bin/$(SERVER_BINARY) bin/$(CLIENT_BINARY) bin/$(ANDROID_CLIENT_BINARY)
-	rm -f bin/$(TAR)
+	rm -f $(BIN_TAR)
