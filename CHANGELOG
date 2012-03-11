@@ -1,3 +1,7 @@
+Version 3.1-beta:
+   - Added tar make rule to automate pre-compiled distributions
+   - Added install script for pre-compiled distributions
+
 Version 3.0-beta:
    - Updated to client / server architecture
    - Added init.d script
