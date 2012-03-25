@@ -12,18 +12,15 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.SharedPreferences;
-import android.os.Looper;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.widget.Toast;
 
 public abstract class Utils {	
 
@@ -105,7 +102,7 @@ public abstract class Utils {
 		} else if(item.getTitle().equals(context.getString(R.string.changelogTitle))) {
 			DialogUtils.showAboutDialog(context, Constants.CHANGELOG);
 			return true;
-		} else if(item.getTitle().equals(context.getString(R.string.portLabel))) {
+		} else if(item.getTitle().equals(context.getString(R.string.portMenuLabel))) {
 			DialogUtils.showEditPortDialog(context);
 			return true;
 		}
@@ -124,112 +121,4 @@ public abstract class Utils {
 	public static int getIntPref(Context context, String key) {
 		return context.getSharedPreferences(Constants.SETTINGS_FILE, 0).getInt(key, -1);
 	}
-	 
-	 
-	public static void changeVolume(final Context context, final String host, final int port, final ArrayList<String> channels, final int leftVol, final int rightVol) {
-    	Thread thread = new Thread(new Runnable() {
-			public void run() {
-				Looper.prepare();
-				
-				Server server = new Server(host, port);
-				
-				try {
-					server.connect();
-					
-					// Ensure we're connected now
-					if(!server.isConnected()) {
-						((Activity)context).runOnUiThread(new Runnable() {
-							public void run() {
-								DialogUtils.displayErrorDialog(context, R.string.serverConnectErrorTitle, R.string.serverConnectError);
-							}
-						});
-						return;
-					}
-					
-					// Get the server's welcome message
-					
-					// Check the server sent the welcome message
-					if(!server.receive().equals("helo")) {
-						((Activity)context).runOnUiThread(new Runnable() {
-							public void run() {
-								DialogUtils.displayErrorDialog(context, R.string.serverCommErrorTitle, R.string.serverCommError);
-							}
-						});
-						
-						// Something is wrong. Disconnect from the server to retry if this function is called again
-						server.close();
-						return;
-					}
-
-					// Say hello back to complete the handshake
-					server.send("helo");
-					
-					// Check for the ready command	
-					if(!server.receive().equals("redy") ) {
-						((Activity)context).runOnUiThread(new Runnable() {
-							public void run() {
-								DialogUtils.displayErrorDialog(context, R.string.serverCommErrorTitle, R.string.serverCommError);
-							}
-						});
-						
-						// Something is wrong. We can't continue without a ready command
-						server.close();
-						return;
-					}
-					
-					for(int i=0; i<channels.size(); i++) {
-						// Send the change volume command
-						server.send(channels.get(i) + "=" + leftVol + "," + rightVol);
-						
-						// Check for confirmation of changed volume
-						if(server.receive().equals("ok")) {
-							((Activity)context).runOnUiThread(new Runnable() {
-								public void run() {
-									Toast.makeText(context, R.string.volumeSet, Toast.LENGTH_LONG).show();
-								}
-							});
-						} else {
-							((Activity)context).runOnUiThread(new Runnable() {
-								public void run() {
-									DialogUtils.displayErrorDialog(context, R.string.setVolumeErrorTitle, R.string.setVolumeError);
-								}
-							});
-						}
-					}
-					
-					// Gracefully end the connection
-					server.send("end");
-					
-					// Check for end confirmation
-					// Don't actually do anything... at least not yet.
-					if(!server.receive().equals("end"));
-					
-					// Shut it down
-					server.close();
-					
-				} catch (UnknownHostException uhe) {
-					((Activity)context).runOnUiThread(new Runnable() {
-						public void run() {
-							DialogUtils.displayErrorDialog(context, R.string.unknownHostErrorTitle, R.string.unknownHostError);
-						}
-					});
-				} catch (IOException ioe) {
-					((Activity)context).runOnUiThread(new Runnable() {
-						public void run() {
-							DialogUtils.displayErrorDialog(context, R.string.serverCommErrorTitle, R.string.serverCommError);
-						}
-					});
-				} catch (NullPointerException npe) {
-					((Activity)context).runOnUiThread(new Runnable() {
-						public void run() {
-							DialogUtils.displayErrorDialog(context, R.string.serverCommErrorTitle, R.string.serverCommError);
-						}
-					});
-				}
-			}
-		});
-		
-    	// Let's a go!
-		thread.start();
-    }
 }

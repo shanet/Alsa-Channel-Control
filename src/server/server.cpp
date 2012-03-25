@@ -149,7 +149,7 @@ int main(int argc, char* argv[]) {
                }
 
                if(verbose >= VERBOSE) {
-                  printf("%s: Reply from client %d: %s\n", prog, client.getID(), prog);
+                  printf("%s: Reply from client %d: %s\n", prog, client.getID(), reply.c_str());
                }
 
                // Check if requesting to end connection

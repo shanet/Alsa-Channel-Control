@@ -68,7 +68,7 @@ https://github.com/shanet/Alsa-Channel-Control
 		   	    android:layout_height="wrap_content"
 		   	    android:layout_toRightOf="@id/leftVolLabel"
 		   	    android:layout_centerVertical="true"
-		   	    android:progress="100"
+		   	    android:progress="40"
 		   	    android:max="100"/>
 		</RelativeLayout>
 		
@@ -89,7 +89,7 @@ https://github.com/shanet/Alsa-Channel-Control
 		   	    android:layout_height="wrap_content"
 		   	   	android:layout_toRightOf="@id/rightVolLabel"
 		   	    android:layout_centerVertical="true"
-		   	    android:progress="100"
+		   	    android:progress="40"
 		   	    android:max="100"/>
 		</RelativeLayout>
 	   	

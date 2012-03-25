@@ -28,6 +28,7 @@ public class Main extends Activity {
 	
 	public static ArrayList<String> serverList = null;
 	public static ArrayList<String> channelList = null;
+	private Background bgThread;
 	
 	@Override
     public void onCreate(Bundle savedInstanceState) {
@@ -113,6 +114,9 @@ public class Main extends Activity {
 			}
 		});
         
+        // Init the bg thread
+        bgThread = new Background(this);
+        
         // Set the submit button listener
         Button submit = (Button) findViewById(R.id.submit);
         submit.setOnClickListener(new OnClickListener() {
@@ -131,9 +135,17 @@ public class Main extends Activity {
 				
 				int port = Utils.getIntPref(Main.this, "port");
 				
+				// Construct the info bundle
+				Bundle serverInfo = new Bundle();
+				serverInfo.putInt("port", port);
+				serverInfo.putStringArrayList("channels", channelList);
+				serverInfo.putInt("leftVol", leftVol.getProgress());
+				serverInfo.putInt("rightVol", rightVol.getProgress());
+
 				// Send the volumes to each channel to each server
 				for(int i=0; i<serverList.size(); i++) {
-					Utils.changeVolume(Main.this, serverList.get(i), port, channelList, leftVol.getProgress(), rightVol.getProgress());
+					serverInfo.putString("host", serverList.get(i));
+					bgThread.execute(serverInfo);
 				}
 			}
 		});

@@ -32,6 +32,9 @@ https://github.com/shanet/Alsa-Channel-Control
     <string name="emptyAddChannel">Channel cannot be blank!</string>
     <string name="emptyPort">Port cannot be blank!</string>
     
+    <string name="connServer">Connecting to server...</string>
+    <string name="commServer">Communicating with server...</string>
+    
     <string name="submit">Submit</string>
     <string name="okay">Okay</string>
     <string name="yes">Yes</string>
@@ -60,11 +63,13 @@ https://github.com/shanet/Alsa-Channel-Control
     <string name="serverConnectErrorTitle">Network Error</string>
     <string name="serverConnectError">Unable to connect to server.</string>
     <string name="unknownHostErrorTitle">Network Error</string>
-    <string name="unknownHostError">The server provided could not be found on the network.</string>
+    <string name="unknownHostError">The specified server could not be found on the network.</string>
     <string name="serverCommErrorTitle">Server Error</string>
     <string name="serverCommError">The server sent unexpected data or no data at all.</string>
     <string name="setVolumeErrorTitle">Set Volume Error</string>
     <string name="setVolumeError">An error occurred while setting the volume. Try again.</string>
+    <string name="malformedDataErrorTitle">Malformed Data Error</string>
+    <string name="malformedDataError">A background thread received malformed or unexpected data.</string>
     
     <string name="welcomeTitle">Welcome!</string>
    	<string name="aboutThisAppTitle">About This App</string>
@@ -88,7 +93,11 @@ https://github.com/shanet/Alsa-Channel-Control
 	
 	<string name="changelogTitle">Changelog</string>
    	<string name="changelogText">
-   		<b>Current Version: 1.0.0</b>
+   		<b>Current Version: 1.0.1</b>
+   		\n\n<b>1.0.1:</b>
+   			\n\t-Patched a few protocol issues
+   			\n\t-Fixed Set Port dialog not showing
+   			\n\t-Reworked the backend slightly	
    		\n\n<b>1.0.0:</b>
    			\n\t-Initial release! :D
    	</string>

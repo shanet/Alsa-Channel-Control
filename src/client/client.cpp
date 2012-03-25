@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
    };
 
    // Parse the command line args
-   while((c = getopt_long(argc, argv, "hVH:p:c:v:", longOpts, &optIndex)) != -1) {
+   while((c = getopt_long(argc, argv, "hqVH:p:c:v:", longOpts, &optIndex)) != -1) {
       switch(c) {
          // Print help
          case 'h':
@@ -69,12 +69,14 @@ int main(int argc, char *argv[]) {
 
    // Check that there are equal number of channels and volumes
    if(channels.size() != vols.size()) {
-      fprintf(stderr, "%s: Invalid number of channels for number of volumes given\n", prog);
+      fprintf(stderr, "%s: Invalid number of channels for number of volumes given. Don't confuse '-v' with '-V'. Use \'%s -h\' for usage.\n", prog, prog);
+      return ABNORMAL_EXIT;
+   } else if(channels.size() == 0 || vols.size() == 0) {
+      fprintf(stderr, "%s: No channels or volumes specified. Use \'%s -h\' for usage.\n", prog, prog);
       return ABNORMAL_EXIT;
    }
 
    // Init the client object
-   //printf("%s: server << " " << port << endl;
    Client client(server, port);
 
    // Connect to server
@@ -95,18 +97,29 @@ int main(int argc, char *argv[]) {
       // Get initial welcome from server
       client.receive(&reply);
       if(reply.compare("helo\n") != 0) {
+         fprintf(stderr, "%s: Server did not send proper handshake\n", prog);
          throw FAILURE;
       }
 
       // Complete handshake
       if(client.send("helo\n") == FAILURE) {
+         fprintf(stderr, "%s: Failed to complete handshake\n", prog);
          throw FAILURE;
+      } else {
+         if(verbose >= DBL_VERBOSE) {
+            printf("%s: Completed handshake with server.\n", prog);
+         }
       }
 
       // Wait for the ready command to start sending volume commands
       client.receive(&reply);
       if(reply.compare("redy\n") != 0) {
+         fprintf(stderr, "%s: Expected 'redy' command, but none received\n", prog);
          throw FAILURE;
+      } else {
+         if(verbose >= DBL_VERBOSE) {
+            printf("%s: Server ready to accept volume commands\n", prog);
+         }
       }
 
       // Send as many commands as there are in the channels vector
@@ -133,7 +146,7 @@ int main(int argc, char *argv[]) {
          int recvLen = client.receive(&reply);
 
          if(recvLen == FAILURE) {
-            if(verbose >= VERBOSE) {
+            if(verbose >= DBL_VERBOSE) {
                printf("%s: Communication error with server. Non-fatal.\n", prog);
             }
             throw FAILURE;
@@ -158,11 +171,7 @@ int main(int argc, char *argv[]) {
             throw FAILURE;
          }
       }
-   } catch (int exception) {
-      if(verbose >= VERBOSE) {
-         fprintf(stderr, "%s: Server did not send proper handshake\n", prog);
-      }
-   }
+   } catch (int exception) {}
 
    if(verbose >= VERBOSE) {
       printf("%s: Closing connection with server\n", prog);
