@@ -1,0 +1,10 @@
+# Ignore all the binary files Eclipse likes to make
+*.class
+src/android_client/bin/*
+
+
+# OS junk
+.DS_Store*
+ehthumbs.db
+Icon?
+Thumbs.db
