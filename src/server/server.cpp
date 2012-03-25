@@ -15,9 +15,15 @@ int main(int argc, char* argv[]) {
    prog = argv[0];
    verbose = NO_VERBOSE;
 
-   // Catch SIGINT's and SIGTERM's
-   signal(SIGINT, sigHandler);
-   signal(SIGTERM, sigHandler);
+   // Handle SIGINT's and SIGTERM's
+   struct sigaction sa;
+   sa.sa_handler = sigHandler;
+   sa.sa_flags = SA_RESTART;
+   sigemptyset(&sa.sa_mask);
+   if(sigaction(SIGINT, &sa, NULL) == -1 || sigaction(SIGTERM, &sa, NULL) == -1) {
+      fprintf(stderr, "%s: Failed to install signal handlers\n", prog);
+      return ABNORMAL_EXIT;
+   }
 
    // Valid long options
    static struct option longOpts[] = {
@@ -62,7 +68,6 @@ int main(int argc, char* argv[]) {
       return FAILURE;
    }
 
-   // Wait for connections
    printf("%s: Server started on port %d\n", prog, server.getPort());
 
    // This is a server. Fork and return control to whatever started us
@@ -73,7 +78,7 @@ int main(int argc, char* argv[]) {
       return NORMAL_EXIT;
    }
 
-
+   // Wait for connections
    while(1) {
       // Accept any incoming connections
       client = server.acceptConnection();
@@ -84,7 +89,8 @@ int main(int argc, char* argv[]) {
       }
 
       // Fork the connection
-      if(fork() != 0) {
+      int pid;
+      if(!(pid = fork())) {
          try {
             // Get hostname of connection
             printf("%s: Got connection from %s\n", prog, client.getIPAddress().c_str());
@@ -152,6 +158,7 @@ int main(int argc, char* argv[]) {
                      printf("%s: client %d requested to close connection\n", prog, client.getID());
                   }
 
+                  // Send an end confirmation
                   client.send("end\n");
 
                   // Use this is a way to exit the loop and close the connection gracefully
@@ -191,10 +198,21 @@ int main(int argc, char* argv[]) {
 
          // Kill this child
          exit(NORMAL_EXIT);
+      } else {
+         // Add the new child to the children list
+         children.push_back(pid);
       }
    }
 
-   // Stop the server obviously
+   // Wait for the kids to come home
+   int childStatus;
+   for(unsigned int i=0; i<children.size(); i++) {
+      if(waitpid(children[i], &childStatus, 0) != -1) {
+         children.erase(children.begin());
+      }
+   }
+
+   // Shut it down
    printf("%s: Server stopping...", prog);
    server.stop();
 
@@ -202,7 +220,7 @@ int main(int argc, char* argv[]) {
 }
 
 
-int parseCommand(string command) {
+int parseCommand(const string command) {
    // Command should be in the format [channel]=[leftVol],[rightVol]
    string channel;
    int equalsIndex, commaIndex;
@@ -218,80 +236,72 @@ int parseCommand(string command) {
    rightVol = atoi(command.substr(commaIndex+1).c_str());
 
    // Finally, change the volume!
-   FILE *alsaOutput;
-   //char tmpLine[P_BUFFER];
-   //stringstream output;
-
-   // Check if a file to the output was not returned
-   if(!(alsaOutput = changeVolume(channel, leftVol, rightVol))) {
-      return FAILURE;
-   }
-
-   // Copy the process output to a stringstream
-   //while(fgets(tmpLine, sizeof tmpLine, alsaOutput)) {
-   //   output << tmpLine;
-   //}
-
-   // Close the process
-   int alsaExitCode = pclose(alsaOutput);
-
-   // Check the exit code from alsa to see if we're succeeded
-   // 0 is success, anything else is failure
-   return (!alsaExitCode == 0) ? SUCCESS : FAILURE;
-
-   // This error checking may be added in the future, but for now, just check
-   // the exit code of the alsa
-
-   // Check if the channel we tried didn't exist or the volumes were empty
-   /*if(data.find("Unable to find simple control") != string::npos) {
-      if(verbose >= VERBOSE) {
-         cout << "Invalid channel from client " << client.getID() << endl;
-      }
-      return FAILURE;
-   } else if(output.str().find("Specify what you want to set") != string::npos) {
-      if(verbose >= VERBOSE) {
-         cout << "Malformed volume data from client " << client.getID() << endl;
-      }
-      return FAILURE;
-   }*/
-
-   //return SUCCESS;
+   return changeVolume(channel, leftVol, rightVol);
 }
 
 
-void sigHandler(int signal) {
+void sigHandler(const int signal) {
    // Clean up and exit if requested by the system
    if(signal == SIGINT || signal == SIGTERM) {
       if(verbose >= DBL_VERBOSE) {
          printf("%s: Cleaning up...\n", prog);
       }
+
+      // Kill the children
+      for(unsigned int i=0; i<children.size(); i++) {
+         kill(children[i], SIGTERM);
+      }
+
+      // Stop the server and exit
       server.stop();
       exit(NORMAL_EXIT);
    }
 }
 
 
-FILE* changeVolume(string channel, int leftVolume, int rightVolume) {
-   stringstream command;
+int changeVolume(const string channel, const int leftVolume, const int rightVolume) {
+   const char *alsaBinary = "amixer";
+   stringstream vol;
 
-   // Construct the command
-   command << "amixer sset " << channel << " " << leftVolume << "%," << rightVolume << "% 2>&1";
+   // Construct the volume string
+   vol << leftVolume << "%," << rightVolume << "%";
 
    if(verbose >= VERBOSE) {
-      printf("%s: Setting volume to: %s\n", prog, command.str().c_str());
+      printf("%s: Setting volume to: %s=%s\n", prog, channel.c_str(), vol.str().c_str());
    }
 
-   // Execute command and return a file to its output
-   return popen(command.str().c_str(), "r");
+   // Fork and exec the Alsa binary to change the volume
+   int pid;
+   int status = -1;
+   if((pid = fork()) == -1) {
+      fprintf(stderr, "%s: Failed to create child\n", prog);
+   } else if(pid == 0) {
+      // Execute the alsa binary to change the volume
+      if(execlp(alsaBinary, "sset", channel.c_str(), vol.str().c_str(), NULL) == -1) {
+         fprintf(stderr, "%s: Failed to execute \"%s\": %s\n", prog, alsaBinary, strerror(errno));
+      }
+   } else {
+      // Wait for the fork to exit and return its exit code
+      waitpid(pid, &status, 0);
+
+      if(verbose >= DBL_VERBOSE) {
+         printf("%s: %s exited with exit code %d\n", prog, alsaBinary, status);
+      }
+
+      return status;
+   }
+
+   // How did you get here?
+   return -1;
 }
 
 
 void printUsage() {
-   printf("Usage: %s [options]\n\
+   printf("%s: Usage: %s [options]\n\
           --port\t(-p) [port]\tSpecify port number\n\
           --verbose\t(-v)\t\tIncrease verbosity up to three levels\n\
           --version\t(-V)\t\tPrint version\n\
-          --help\t(-h)\t\tDisplay this message\n", NAME);
+          --help\t(-h)\t\tDisplay this message\n", prog, prog);
 }
 
 

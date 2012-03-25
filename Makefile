@@ -40,7 +40,7 @@ client: $(CLIENT_OBJECTS)
 
 android:
 	ant -f src/android_client/build.xml debug
-	cp src/android_client/bin/android_client.apk bin/$(ANDROID_CLIENT_BINARY)
+	cp src/android_client/bin/Main-debug.apk bin/$(ANDROID_CLIENT_BINARY)
 
 install: server client
 	cp src/server/$(INIT_SCRIPT) /etc/init.d/$(INIT_SCRIPT)

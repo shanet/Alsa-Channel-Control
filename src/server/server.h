@@ -9,6 +9,9 @@
 #include <string.h>
 #include <signal.h>
 #include <getopt.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "Server.h"
 
@@ -30,17 +33,18 @@
 using namespace std;
 
 
-char *prog;       // Name of the program
-int verbose;      // The verbose level
-Server server;    // The main server object
-Client client;    // Clients connected to the server
+char *prog;              // Name of the program
+int verbose;             // The verbose level
+Server server;           // The main server object
+Client client;           // Clients connected to the server
+vector<int> children;    // Array of PIDs of all children created
 
 
-static void sigHandler(int);
+static void sigHandler(const int);
 
-int parseCommand(string command);
+int parseCommand(const string command);
 
-FILE* changeVolume(string channel, int leftVolume, int rightVolume);
+int changeVolume(const string channel, const int leftVolume, const int rightVolume);
 
 void printUsage();
 

@@ -197,6 +197,14 @@ public abstract class Utils {
 						}
 					}
 					
+					// Gracefully end the connection
+					server.send("end");
+					
+					// Check for end confirmation
+					// Don't actually do anything... at least not yet.
+					if(!server.receive().equals("end"));
+					
+					// Shut it down
 					server.close();
 					
 				} catch (UnknownHostException uhe) {

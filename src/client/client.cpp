@@ -168,7 +168,19 @@ int main(int argc, char *argv[]) {
       printf("%s: Closing connection with server\n", prog);
    }
 
-   client.send("end");
+   // End the connection gracefully
+   client.send("end\n");
+
+   // Check for end confirmation
+   client.receive(&reply);
+   if(reply.compare("end\n") != 0) {
+      // If we didn't get it, oh well.
+      if(verbose >= DBL_VERBOSE) {
+         fprintf(stderr, "%s: Server failed to send end connection confirmation\n", prog);
+      }
+   }
+
+   // Close it.
    client.closeConnection();
 
    return NORMAL_EXIT;
