@@ -267,7 +267,7 @@ int changeVolume(const string channel, const int leftVolume, const int rightVolu
    vol << leftVolume << "%," << rightVolume << "%";
 
    if(verbose >= VERBOSE) {
-      printf("%s: Setting volume to: %s=%s\n", prog, channel.c_str(), vol.str().c_str());
+      printf("%s: Setting volume to: %s %s\n", prog, channel.c_str(), vol.str().c_str());
    }
 
    // Fork and exec the Alsa binary to change the volume
@@ -276,8 +276,14 @@ int changeVolume(const string channel, const int leftVolume, const int rightVolu
    if((pid = fork()) == -1) {
       fprintf(stderr, "%s: Failed to create child\n", prog);
    } else if(pid == 0) {
+      // Close stdout and stderr to supress output from the Alsa binary unless >= double verbose is specified
+      if(verbose < DBL_VERBOSE) {
+         fclose(stdout);
+         fclose(stderr);
+      }
+
       // Execute the alsa binary to change the volume
-      if(execlp(alsaBinary, "sset", channel.c_str(), vol.str().c_str(), NULL) == -1) {
+      if(execlp(alsaBinary, alsaBinary, "sset", channel.c_str(), vol.str().c_str(), NULL) == -1) {
          fprintf(stderr, "%s: Failed to execute \"%s\": %s\n", prog, alsaBinary, strerror(errno));
       }
    } else {
