@@ -4,6 +4,8 @@ package com.shanet.alsa_control;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -11,23 +13,46 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Looper;
 import android.widget.Toast;
 
 public class Background extends AsyncTask<Bundle, Integer, Integer> {
 
 	private AlertDialog dialog;
 	private Context context;
+	private Timer timer;
+	private TimerTask tt;
+	private boolean isDialogShown;
 	
 	public Background(Context context) {
 		this.context = context;
+		isDialogShown = false;
+		dialog = new ProgressDialog(context);
+		
+		// Only show the connecting and communicating with server dialogs if the bg thread runs for more than 200ms.
+		// Time is specified in onPreExecute() below.
+		timer = new Timer();
+		tt = new TimerTask() {
+			@Override
+			public void run() {
+				Looper.prepare();
+				((Activity)Background.this.context).runOnUiThread(new Runnable() {
+					public void run() {
+						dialog = ProgressDialog.show(Background.this.context, "", Background.this.context.getString(R.string.connServer));
+					}
+				});
+				isDialogShown = true;
+			}
+		};
 	}	    
 
 	protected void onPreExecute() {
-		dialog = ProgressDialog.show(context, "", context.getString(R.string.connServer));
+		timer.schedule(tt, 200);
 	}
 
-	protected void onPostExecute() {
+	protected void onPostExecute(Integer result) {
 		dialog.dismiss();
+		tt.cancel();
 	}
 
 	protected Integer doInBackground(Bundle...params) {
@@ -65,11 +90,13 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 				return Constants.FAILURE;
 			}
 			
-			// Change the dialog from connecting to server to communicating with server
+			// Change the dialog from connecting to server to communicating with server if dialogs are shown
 			((Activity)context).runOnUiThread(new Runnable() {
 				public void run() {
-					dialog.dismiss();
-					dialog = ProgressDialog.show(context, "", context.getString(R.string.commServer));
+					if(isDialogShown) {
+						dialog.dismiss();
+						dialog = ProgressDialog.show(context, "", context.getString(R.string.commServer));
+					}
 				}
 			});
 								
