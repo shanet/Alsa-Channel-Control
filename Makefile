@@ -47,6 +47,7 @@ install: server client
 	chmod 744 /etc/init.d/$(INIT_SCRIPT)
 	cp bin/$(SERVER_BINARY) $(INSTALL_DIR)$(SERVER_BINARY)
 	cp bin/$(CLIENT_BINARY) $(INSTALL_DIR)$(CLIENT_BINARY)
+	update-rc.d $(INIT_SCRIPT) defaults
 
 install_android: android
 	adb -d install bin/${ANDROID_CLIENT_BINARY}

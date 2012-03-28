@@ -29,6 +29,8 @@ echo "Installing startup script..."
 cp  $INIT_SCRIPT /etc/init.d/$INIT_SCRIPT
 echo "Setting startup script permissions..."
 chmod 744 /etc/init.d/$INIT_SCRIPT
+echo "Enabling server start at boot on default runlevels..."
+update-rc.d $INIT_SCRIPT defaults
 
 echo -n "Install Android client? (y,N) "
 read android
