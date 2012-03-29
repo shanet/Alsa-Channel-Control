@@ -98,6 +98,7 @@ https://github.com/shanet/Alsa-Channel-Control
    			\n\t-Patched a few protocol issues
    			\n\t-Fixed Set Port dialog not showing
    			\n\t-Reworked the backend slightly	
+   			\n\t-Shows dialog when connecting to server if on slow connection
    		\n\n<b>1.0.0:</b>
    			\n\t-Initial release! :D
    	</string>
