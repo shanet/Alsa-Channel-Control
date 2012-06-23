@@ -18,26 +18,25 @@ UNINSTALL_SCRIPT=uninstall.sh
 INSTALL_DIR=/usr/sbin/
 BIN_TAR=alsa-server-bin.tar.gz
 
-SERVER_SOURCES=$(wildcard src/server/*.cpp)
-CLIENT_SOURCES=$(wildcard src/client/*.cpp)
+SERVER_SOURCES=$(wildcard src/server/*.h) $(wildcard src/server/*.cpp)
+CLIENT_SOURCES=$(wildcard src/client/*.h) $(wildcard src/client/*.cpp)
 
-INCLUDE_PATHS=src/global/
-LIBS=-lgcrypt
+INCLUDE_PATHS=
 
 SERVER_OBJECTS=$(SERVER_SOURCES:.$(LANG)=.o)
 CLIENT_OBJECTS=$(CLIENT_SOURCES:.$(LANG)=.o)
 
+CFLAGS=$(CLFLAGS) -c
 CLFLAGS=-I$(INCLUDE_PATHS) -Wall -Wextra -O2
-CFLAGS=$(CLFLAGS) -std=c++0x -g -c
 
 
 all: server client android
 
 server: $(SERVER_OBJECTS)
-	$(CC) $(CLFLAGS) -o bin/$(SERVER_BINARY) $(SERVER_OBJECTS) $(LIBS)
+	$(CC) $(CLFLAGS) -o bin/$(SERVER_BINARY) $(SERVER_OBJECTS)
 
 client: $(CLIENT_OBJECTS)
-	$(CC) $(CLFLAGS) -o bin/$(CLIENT_BINARY) $(CLIENT_OBJECTS) $(LIBS)
+	$(CC) $(CLFLAGS) -o bin/$(CLIENT_BINARY) $(CLIENT_OBJECTS)
 
 android:
 	ant -f src/android_client/build.xml debug

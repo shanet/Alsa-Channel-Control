@@ -5,9 +5,6 @@
 
 #include "Server.h"
 
-using namespace std;
-using namespace Crypt;
-
 Server::Server(int port, int backlog) {
    // Check that the port is within the valid range
    this->port = (port > 0 && port <= 65535) ? port : -1;
@@ -15,24 +12,15 @@ Server::Server(int port, int backlog) {
    // Default backlog if not valid
    this->backlog = (backlog > 0) ? backlog : DEFAULT_BACKLOG;
 
-   init();
+   numClients = 0;
 }
 
 Server::Server() {
+   numClients = 0;
    port = -1;
    backlog = DEFAULT_BACKLOG;
-
-   init();
-}
-
-
-void Server::init() {
-   numClients = 0;
    listSock = -1;
    serverInfo = NULL;
-   isRunning = 0;
-   //keypair->prikey = NULL;
-   //keypair->pubkey = NULL;
 }
 
 Server::~Server() {
@@ -41,22 +29,7 @@ Server::~Server() {
 }
 
 
-// Public functions
-
 int Server::start(int aiFamily, int aiFlags) {
-   // Init gcrypt
-   initGcry();
-
-   // Generate a keypair
-   if(verbose >= VERBOSE) {
-      printf("%s: Generating public-key pair...\n", prog);
-   }
-   if(generateKeyPair(keypair, KEY_BIT_LENGTH) != 0) {
-      exit(37);
-      return FAILED_TO_GEN_KEY;
-   }
-   exit(42);
-
    // Get server info
    if(getAddressInfo(aiFamily, aiFlags) == FAILURE) {
      return FAILED_TO_GET_ADDR_INFO;
@@ -72,12 +45,7 @@ int Server::start(int aiFamily, int aiFlags) {
       return FAILED_TO_LISTEN;
    }
 
-   isRunning = true;
-
    // Yay!
-   if(verbose >= VERBOSE) {
-      printf("%s: Server startup successful. Waiting for clients...\n", prog);
-   }
    return SUCCESS;
 }
 
@@ -148,9 +116,9 @@ Client Server::acceptConnection() {
       numClients++;
    }
    
-   Client client(connSock, clientInfo, numClients, keypair);
+   Client newClient(connSock, clientInfo, numClients);
 
-   return client;
+   return newClient;
 }
 
 
@@ -159,10 +127,40 @@ void Server::stop() {
 }
 
 
+/*int Server::send(int connSock, string data) {
+   return ::send(connSock, data.c_str(), data.length(), 0);
+}
+
+
+int Server::receive(int connSock, string *reply) {
+   char *tmpReply = new char[BUFFER];
+
+   int recvLen = recv(connSock, tmpReply, BUFFER, 0);
+
+   // Add null terminator only if recvLen is >= 0 to avoid going out of bounds
+   if(recvLen >= 0) {
+      tmpReply[recvLen] = '\0';
+      *reply = tmpReply;
+   }
+
+   delete tmpReply;
+
+   return recvLen;
+}
+
+  
+string Server::getIPAddress(sockaddr_storage *connAddr) {
+	// Make the IP long enough for IPv6 addresses, even though we currently only support IPv4
+   char ip[INET6_ADDRSTRLEN];
+
+   inet_ntop(connAddr->ss_family, &((sockaddr_in*)connAddr)->sin_addr, ip, sizeof ip);
+
+   return string(ip);
+}*/
+
 void Server::setPort(int port) {
    this->port = port;
 }
-
 
 int Server::getListSock() const {
    return listSock;
@@ -171,23 +169,4 @@ int Server::getListSock() const {
 
 int Server::getPort() const {
 	return port;
-}
-
-
-gcry_sexp_t Server::getPublicKey() {
-   return keypair->pubkey;     
-}
-
-
-int Server::setPublicKey(char *pubkey) {
-   if(isRunning) return -1;
-
-   return 0;
-}
-
-
-int Server::setPrivateKey(char *prikey) {
-   if(isRunning) return -1;
-
-   return 0;
 }
