@@ -12,10 +12,12 @@ While not required at compile-time, the Alsa program "amixer" is required for th
 work properly.
 
 For the server and client:
+
     make
     sudo make install
 
 For the Android client:
+
     make android
     sudo make install_android  <-- You should have your Android device plugged in
 
