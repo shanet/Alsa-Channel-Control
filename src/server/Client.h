@@ -2,41 +2,43 @@
 // shane tully (shane@shanetully.com)
 // shanetully.com
 // https://github.com/shanet/Alsa-Channel-Control
+#ifndef CLIENT_H
+#define CLIENT_H
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <netdb.h>
-
 #include <string>
 #include "string.h"
 
-#define SUCCESS 0
-#define FAILURE -1
-#define BUFFER 1000
+#ifndef CONSTANTS_H
+#include "Constants.h"
+#endif
+#ifndef CRYPT_H
+#include "Crypt.h"
+#endif
 
-using namespace std;
-
-#ifndef CLIENT_H
-#define CLIENT_H
+extern int verbose;
+extern char *prog;
 
 class Client {
 
 public:
-   Client(int socket, sockaddr_storage clientInfo, int id);
+   Client(int socket, sockaddr_storage clientInfo, int id, Keypair *keypair);
 
    Client();
 
    ~Client();
 
-   int send(string data);
+   int send(std::string data);
 
-   int receive(string *reply);
+   int receive(std::string *reply);
 
    void close();
 
-   string getIPAddress();
+   std::string getIPAddress();
 
    int getSocket();
 
@@ -48,6 +50,7 @@ private:
    int id;
 	int socket;
 	sockaddr_storage clientInfo;
+   Keypair *keypair;
 };
 
 #endif

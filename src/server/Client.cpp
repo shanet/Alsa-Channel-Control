@@ -5,10 +5,14 @@
 
 #include "Client.h"
 
-Client::Client(int socket, sockaddr_storage clientInfo, int id) {
+using namespace std;
+using namespace Crypt;
+
+Client::Client(int socket, sockaddr_storage clientInfo, int id, Keypair *keypair) {
    this->socket = socket;
    this->clientInfo = clientInfo;
    this->id = id;
+   this->keypair = keypair;
 }
 
 
