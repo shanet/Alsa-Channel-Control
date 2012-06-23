@@ -3,13 +3,20 @@
 // shanetully.com
 // https://github.com/shanet/Alsa-Channel-Control
 
+#ifndef SERVER_H
+#define SERVER_H
+
 #include <sstream>
+#include <stdio.h>
 
 #include "Client.h"
 
-#define SUCCESS 0
-#define FAILURE -1
-#define BUFFER 1000
+#ifndef CONSTANTS_H
+#include "Constants.h"
+#endif
+#ifndef CRYPT_H
+#include "Crypt.h"
+#endif
 
 // Defaults
 #define DEFAULT_BACKLOG 10
@@ -18,11 +25,10 @@
 #define FAILED_TO_BIND 2
 #define FAILED_TO_LISTEN 3
 #define FAILED_TO_GET_ADDR_INFO 4
+#define FAILED_TO_GEN_KEY 5
 
-using namespace std;
-
-#ifndef SERVER_H
-#define SERVER_H
+extern int verbose;
+extern char *prog;
 
 class Server {
 
@@ -45,12 +51,22 @@ public:
 
    int getPort() const;
 
+   gcry_sexp_t getPublicKey();
+
+   int setPublicKey(char *pubkey);
+
+   int setPrivateKey(char *prikey);
+
 private:
    int numClients;
    int port;
    int backlog;
    int listSock;
+   bool isRunning;
    addrinfo *serverInfo;
+   Keypair *keypair;
+
+   void init();
 
    int getAddressInfo(int aiFamily, int aiFlags);
 

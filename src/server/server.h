@@ -4,7 +4,6 @@
 // https://github.com/shanet/Alsa-Channel-Control
 
 #include <vector>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
@@ -13,8 +12,13 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#ifndef SERVER_H
 #include "Server.h"
+#endif
 
+#ifndef CONSTANTS_H
+#include "Constants.h"
+#endif
 
 #define NAME "Alsa Control Server"
 #define VERSION "3.2.0-beta"
@@ -25,10 +29,6 @@
 #define PARSE_ERROR 2
 #define P_BUFFER 512
 
-#define NO_VERBOSE 0
-#define VERBOSE 1
-#define DBL_VERBOSE 2
-#define TPL_VERBOSE 3
 
 using namespace std;
 

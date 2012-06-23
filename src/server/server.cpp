@@ -13,7 +13,8 @@ int main(int argc, char* argv[]) {
 
    // Set the program name we're running under and default verbose level
    prog = argv[0];
-   verbose = NO_VERBOSE;
+   //verbose = NO_VERBOSE;
+   verbose = DBL_VERBOSE;
 
    // Handle SIGINT's and SIGTERM's
    struct sigaction sa;
