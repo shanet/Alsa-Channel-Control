@@ -12,12 +12,12 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.SeekBar;
@@ -28,6 +28,7 @@ public class Main extends Activity {
 	
 	public static ArrayList<String> serverList = null;
 	public static ArrayList<String> channelList = null;
+	private Background bg = null;
 	
 	@Override
     public void onCreate(Bundle savedInstanceState) {
@@ -78,14 +79,54 @@ public class Main extends Activity {
         final SeekBar leftVol = (SeekBar) findViewById(R.id.leftVolPicker);
         final SeekBar rightVol = (SeekBar) findViewById(R.id.rightVolPicker);
         
-        // Lock the seekbars if the checkbox is checked	
+        // Lock the seekbars if the checkbox is checked
         OnSeekBarChangeListener lockVolListener = new OnSeekBarChangeListener() {
 			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+				// Apply a step size of 5%
+				seekBar.setProgress(((int)(progress/Constants.STEP_SIZE))*Constants.STEP_SIZE);
+				
 				if(lockCheck.isChecked()) {
 					if(seekBar == leftVol)
 						rightVol.setProgress(leftVol.getProgress());
 					else
 						leftVol.setProgress(rightVol.getProgress());
+				}
+				
+		    	// Check for empty server and channel lists
+				if(serverList.isEmpty()) {
+					Toast.makeText(Main.this, R.string.emptyServer, Toast.LENGTH_LONG).show();
+					return;
+				} else if(channelList.isEmpty()) {
+					Toast.makeText(Main.this, R.string.emptyChannel, Toast.LENGTH_LONG).show();
+					return;
+				}
+				
+				int port = Utils.getIntPref(Main.this, "port");
+				
+				// Construct the info bundle
+				Bundle serverInfo = new Bundle();
+				serverInfo.putInt("port", port);
+				serverInfo.putStringArrayList("channels", channelList);
+				serverInfo.putInt("leftVol", leftVol.getProgress());
+				serverInfo.putInt("rightVol", rightVol.getProgress());
+
+				// If the background object is null, init it
+				boolean firstConnect = false;
+				if(bg == null) {
+					bg = new Background(Main.this);
+					firstConnect = true;
+				}
+				
+				// Send the volumes to each channel to each server
+				for(int i=0; i<serverList.size(); i++) {
+					serverInfo.putString("host", serverList.get(i));
+					// Wait for the previous bg thread to finish if not the first time executing it since it must
+					// execute once before setting its status to finished
+					if(!firstConnect && bg.getStatus() != AsyncTask.Status.FINISHED) {
+						break;
+					}
+					bg = new Background(Main.this);
+					bg.execute(serverInfo);
 				}
 			}
 			
@@ -114,39 +155,13 @@ public class Main extends Activity {
 		});
                 
         // Set the submit button listener
-        Button submit = (Button) findViewById(R.id.submit);
+        /*Button submit = (Button) findViewById(R.id.submit);
         submit.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {								
-				// Check for empty server and channel lists
-				if(serverList.isEmpty()) {
-					Toast.makeText(Main.this, R.string.emptyServer, Toast.LENGTH_LONG).show();
-					return;
-				} else if(channelList.isEmpty()) {
-					Toast.makeText(Main.this, R.string.emptyChannel, Toast.LENGTH_LONG).show();
-					return;
-				}
-				
-				SeekBar leftVol = (SeekBar) findViewById(R.id.leftVolPicker);
-				SeekBar rightVol = (SeekBar) findViewById(R.id.rightVolPicker);
-				
-				int port = Utils.getIntPref(Main.this, "port");
-				
-				// Construct the info bundle
-				Bundle serverInfo = new Bundle();
-				serverInfo.putInt("port", port);
-				serverInfo.putStringArrayList("channels", channelList);
-				serverInfo.putInt("leftVol", leftVol.getProgress());
-				serverInfo.putInt("rightVol", rightVol.getProgress());
-
-				// Send the volumes to each channel to each server
-				for(int i=0; i<serverList.size(); i++) {
-					serverInfo.putString("host", serverList.get(i));
-					new Background(Main.this).execute(serverInfo);
-				}
+				//sendVol();
 			}
-		});
+        });*/
     }
-	
 	
 	@Override
 	public void onResume() {
@@ -192,7 +207,7 @@ public class Main extends Activity {
 	public boolean onOptionsItemSelected(MenuItem item) {
 		return Utils.onOptionsItemSelected(this, item);
 	}
-	
+
 	
 	private void reloadLists() {
 		// Reload the server and channel text fields

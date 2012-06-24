@@ -22,4 +22,6 @@ public abstract class Constants {
 	
 	public static final int ABOUT_THIS_APP = 0;
 	public static final int CHANGELOG = 1;
+	
+	public static final int STEP_SIZE = 5;
 }

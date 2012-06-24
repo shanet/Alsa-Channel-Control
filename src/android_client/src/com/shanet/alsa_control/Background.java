@@ -14,7 +14,6 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Looper;
-import android.widget.Toast;
 
 public class Background extends AsyncTask<Bundle, Integer, Integer> {
 
@@ -78,7 +77,10 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 		String reply;
 
 		try {
-			server.connect();
+			// Connect to the server if not already connected
+			if(!server.isConnected()) {
+				server.connect();
+			}
 
 			// Ensure we're connected now
 			if(!server.isConnected()) {
@@ -138,7 +140,8 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 				if(reply.equals("ok")) {
 					((Activity)context).runOnUiThread(new Runnable() {
 						public void run() {
-							Toast.makeText(context, R.string.volumeSet, Toast.LENGTH_LONG).show();
+							// This is annoying
+							//Toast.makeText(context, R.string.volumeSet, Toast.LENGTH_LONG).show();
 						}
 					});
 				// Check if server requested to close connection
@@ -159,7 +162,7 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 			
 			// Check for end confirmation
 			// Don't actually do anything... at least not yet.
-			if(!server.receive().equals("end"));
+			//if(!server.receive().equals("end"));
 			
 			// Shut it down
 			server.close();

@@ -51,11 +51,20 @@ https://github.com/shanet/Alsa-Channel-Control
 	        android:inputType="text"
 	        android:focusable="false"/>
 	    
+	    <CheckBox android:id="@+id/lockVolumes"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignParentLeft="true"
+	        android:layout_below="@id/channelText"
+	        android:text="@string/lockLabel"
+	        android:checked="true"
+	        android:layout_marginTop="10dip"/>
+	    
 	    <RelativeLayout android:id="@+id/leftVolLayout"
 	        android:layout_width="fill_parent"
 			android:layout_height="wrap_content"
-			android:layout_below="@id/channelText"
-			android:layout_marginTop="40dip">
+			android:layout_below="@id/lockVolumes"
+			android:layout_marginTop="10dip">
 			
 		    <TextView android:id="@+id/leftVolLabel"
 		        android:layout_width="wrap_content"
@@ -77,7 +86,7 @@ https://github.com/shanet/Alsa-Channel-Control
 			android:layout_height="wrap_content"
 			android:layout_below="@id/leftVolLayout"
 			android:layout_alignParentRight="true"
-			android:layout_marginTop="40dip">
+			android:layout_marginTop="15dip">
 		    
 		   	<TextView android:id="@+id/rightVolLabel"
 		        android:layout_width="wrap_content"
@@ -93,20 +102,12 @@ https://github.com/shanet/Alsa-Channel-Control
 		   	    android:max="100"/>
 		</RelativeLayout>
 	   	
-	   	<Button android:id="@+id/submit"
+	   	<!--<Button android:id="@+id/submit"
 	   	    android:layout_width="wrap_content"
 	   	    android:layout_height="wrap_content"
 	   	    android:layout_below="@id/rightVolLayout"
 	   	    android:layout_alignParentRight="true"
 	   	    android:layout_marginTop="5dip"
-	   	    android:text="@string/submit"/>
-	   	
-	    <CheckBox android:id="@+id/lockVolumes"
-	        android:layout_width="wrap_content"
-	        android:layout_height="wrap_content"
-	        android:layout_alignParentLeft="true"
-	        android:layout_alignBaseline="@id/submit"
-	        android:text="@string/lockLabel"
-	        android:checked="true"/>
+	   	    android:text="@string/submit"/>-->
 	</RelativeLayout>
 </ScrollView>

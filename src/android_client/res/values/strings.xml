@@ -32,8 +32,8 @@ https://github.com/shanet/Alsa-Channel-Control
     <string name="emptyAddChannel">Channel cannot be blank!</string>
     <string name="emptyPort">Port cannot be blank!</string>
     
-    <string name="connServer">Connecting to server...</string>
-    <string name="commServer">Communicating with server...</string>
+    <string name="connServer">Connecting to server&#8230;</string>
+    <string name="commServer">Communicating with server&#8230;</string>
     
     <string name="submit">Submit</string>
     <string name="okay">Okay</string>
@@ -93,7 +93,9 @@ https://github.com/shanet/Alsa-Channel-Control
 	
 	<string name="changelogTitle">Changelog</string>
    	<string name="changelogText">
-   		<b>Current Version: 1.0.1</b>
+   		<b>Current Version: 1.1.0</b>
+   		\n\n<b>1.1.0:</b>
+   			\n\t-Live volume changes instead of having a submit button
    		\n\n<b>1.0.1:</b>
    			\n\t-Patched a few protocol issues
    			\n\t-Fixed Set Port dialog not showing
