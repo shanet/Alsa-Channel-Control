@@ -5,9 +5,16 @@
 
 #include "Server.h"
 
-Server::Server(int port, int backlog) {
+Server::Server(int port, int useCrypto, int backlog) {
    // Check that the port is within the valid range
    this->port = (port > 0 && port <= 65535) ? port : -1;
+
+   // If the crypto flag is not true or false, disable encryption
+   if(useCrypto != 0 || useCrypto != 1) {
+      this->useCrypto = 0;
+   } else {
+      this->useCrypto = useCrypto;
+   }
 
    // Default backlog if not valid
    this->backlog = (backlog > 0) ? backlog : DEFAULT_BACKLOG;
@@ -21,15 +28,26 @@ Server::Server() {
    backlog = DEFAULT_BACKLOG;
    listSock = -1;
    serverInfo = NULL;
+   useCrypto = 0;
 }
 
 Server::~Server() {
    freeaddrinfo(serverInfo);
    close(listSock);
+
+   if(useCrypto) {
+      delete crypto;
+      crypto = NULL;
+   }
 }
 
 
 int Server::start(int aiFamily, int aiFlags) {
+   // If using crypto, init the crypto object
+   if(useCrypto) {
+      crypto = new Crypto();
+   }
+
    // Get server info
    if(getAddressInfo(aiFamily, aiFlags) == FAILURE) {
      return FAILED_TO_GET_ADDR_INFO;
@@ -157,6 +175,7 @@ string Server::getIPAddress(sockaddr_storage *connAddr) {
 
    return string(ip);
 }*/
+
 
 void Server::setPort(int port) {
    this->port = port;
