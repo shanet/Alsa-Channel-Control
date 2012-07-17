@@ -18,25 +18,37 @@ UNINSTALL_SCRIPT=uninstall.sh
 INSTALL_DIR=/usr/sbin/
 BIN_TAR=alsa-server-bin.tar.gz
 
-SERVER_SOURCES=$(wildcard src/server/*.h) $(wildcard src/server/*.cpp)
-CLIENT_SOURCES=$(wildcard src/client/*.h) $(wildcard src/client/*.cpp)
-
-INCLUDE_PATHS=
+SERVER_SOURCES=$(wildcard src/server/*.cpp)
+CLIENT_SOURCES=$(wildcard src/client/*.cpp)
+CRYPTO_SOURCES=$(wildcard src/crypto/*.cpp)
 
 SERVER_OBJECTS=$(SERVER_SOURCES:.$(LANG)=.o)
 CLIENT_OBJECTS=$(CLIENT_SOURCES:.$(LANG)=.o)
+CRYPTO_OBJECTS=$(CRYPTO_SOURCES:.$(LANG)=.o)
 
-CFLAGS=$(CLFLAGS) -c
-CLFLAGS=-I$(INCLUDE_PATHS) -Wall -Wextra -O2
+INCLUDE_PATHS=-Isrc/include/ -Isrc/crypto
+
+CFLAGS_COMMON=$(INCLUDE_PATHS) -Wall -Wextra 
+CFLAGS=-O2
+CFLAGS_DEBUG=-ggdb
+
+LIBRARIES=-lcrypto
 
 
 all: server client android
 
-server: $(SERVER_OBJECTS)
-	$(CC) $(CLFLAGS) -o bin/$(SERVER_BINARY) $(SERVER_OBJECTS)
+server: $(SERVER_OBJECTS) $(CRYPTO_OBJECTS)
+	$(CC) $(CFLAGS_COMMON) $(CFLAGS) -o bin/$(SERVER_BINARY) $(SERVER_OBJECTS) $(CRYPTO_OBJECTS) $(LIBRARIES)
 
-client: $(CLIENT_OBJECTS)
-	$(CC) $(CLFLAGS) -o bin/$(CLIENT_BINARY) $(CLIENT_OBJECTS)
+server_debug: $(SERVER_OBJECTS) $(CRYPTO_OBJECTS)
+	$(CC) $(CFLAGS_COMMON) $(CFLAGS_DEBUG) -o bin/$(SERVER_BINARY) $(SERVER_OBJECTS) $(CRYPTO_OBJECTS) $(LIBRARIES)
+
+client: $(CLIENT_OBJECTS) $(CRYPTO_OBJECTS)
+	$(CC) $(CFLAGS_COMMON) $(CFLAGS) -o bin/$(CLIENT_BINARY) $(CLIENT_OBJECTS) $(CRYPTO_OBJECTS) $(LIBRARIES)
+
+client_debug: $(CLIENT_OBJECTS) $(CRYPTO_OBJECTS)
+	$(CC) $(CFLAGS_COMMON) $(CFLAGS_DEBUG) -o bin/$(CLIENT_BINARY) $(CLIENT_OBJECTS) $(CRYPTO_OBJECTS) $(LIBRARIES)
+
 
 android:
 	ant -f src/android_client/build.xml debug
@@ -81,10 +93,11 @@ bin_tar: all
 	rm -rf $(PROJ_NAME)
 
 .$(LANG).o:
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS_COMMON) -c $< -o $@
 
 clean:
 	rm -f $(wildcard src/server/*.o)
 	rm -f $(wildcard src/client/*.o)
+	rm -f $(wildcard src/crypto/*.o)
 	rm -f bin/$(SERVER_BINARY) bin/$(CLIENT_BINARY) bin/$(ANDROID_CLIENT_BINARY)
 	rm -f $(BIN_TAR)

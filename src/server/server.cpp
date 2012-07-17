@@ -13,53 +13,64 @@ int main(int argc, char* argv[]) {
 
    // Set the program name we're running under and default verbose level
    prog = argv[0];
+   useEnc = 0;
    verbose = NO_VERBOSE;
 
-   // Handle SIGINT's and SIGTERM's
+   // Handle SIGINT's, SIGTERM's, and SIGCHLD's
    struct sigaction sa;
    sa.sa_handler = sigHandler;
    sa.sa_flags = SA_RESTART;
    sigemptyset(&sa.sa_mask);
-   if(sigaction(SIGINT, &sa, NULL) == -1 || sigaction(SIGTERM, &sa, NULL) == -1) {
+   if(sigaction(SIGINT,  &sa, NULL) == -1 || 
+      sigaction(SIGTERM, &sa, NULL) == -1 ||
+      sigaction(SIGCHLD, &sa, NULL) == -1)
+   {
       fprintf(stderr, "%s: Failed to install signal handlers\n", prog);
       return ABNORMAL_EXIT;
    }
 
    // Valid long options
    static struct option longOpts[] = {
-      {"port", required_argument, NULL, 'p'},
-      {"verbose", no_argument, NULL , 'v'},
-      {"version", no_argument, NULL, 'V'},
-      {"help", no_argument, NULL, 'h'}
+      {"port",    required_argument, NULL, 'p'},
+      {"encrypt", no_argument,       NULL, 'e'},
+      {"verbose", no_argument,       NULL, 'v'},
+      {"version", no_argument,       NULL, 'V'},
+      {"help",    no_argument,       NULL, 'h'}
    };
 
    // Parse the command line args
-   while((c = getopt_long(argc, argv, "hvVp:", longOpts, &optIndex)) != -1) {
+   while((c = getopt_long(argc, argv, "p:evVh", longOpts, &optIndex)) != -1) {
       switch(c) {
-         // Print help
-         case 'h':
-            printUsage();
-            return NORMAL_EXIT;
-         // Print version
-         case 'V':
-            printVersion();
-            return NORMAL_EXIT;
-         // Set verbose level
-         case 'v':
-            verbose++;
-            break;
          // The port to start the server on
          case 'p':
             port = atoi(optarg);
             break;
+         // Use encryption
+         case 'e':
+            useEnc = 1;
+            break;
+         // Set verbose level
+         case 'v':
+            verbose++;
+            break;
+         // Print version
+         case 'V':
+            printVersion();
+            return NORMAL_EXIT;
+         // Print help
+         case 'h':
+            printUsage();
+            return NORMAL_EXIT;
+         // Invalid option
          case '?':
-            fprintf(stderr, "%s: Try \"%s -h\" for usage information.\n", prog, prog);
          default:
+            fprintf(stderr, "%s: Try \"%s -h\" for usage information.\n", prog, prog);
             return ABNORMAL_EXIT;
       }
    }
 
-   server.setPort(port);
+   // Init the server
+   server = Server(port, useEnc);
 
    // Start the server
    printf("%s: %s version %s starting...\n", prog, NAME, VERSION);
@@ -91,107 +102,30 @@ int main(int argc, char* argv[]) {
       // Fork the connection
       int pid;
       if(!(pid = fork())) {
+         int commandResult;
          try {
             // Get hostname of connection
             printf("%s: Got connection from %s\n", prog, client.getIPAddress().c_str());
 
-            string send, reply;
-
-            // Send welcome
-            if(verbose >= VERBOSE) {
-               printf("%s: Sending helo to client %d\n", prog, client.getID());
-            }
-            // The usual defense for the use of a goto: It's there to avoid putting more logic in to avoid the loop below
-            // if the client didn't send a proper handshake
-            if(client.send("helo\n") == FAILURE) {
-               if(verbose >= VERBOSE) {
-                  fprintf(stderr, "%s: Error sending welcome to client %d\n", prog, client.getID());
-               }
+            // Do the handshake with the client
+            if(clientHandshake() == FAILURE) {
                throw FAILURE;
             }
 
-            // Get reply welcome
-            int recvLen = client.receive(&reply);
-
-            // Validate the reply to complete the handshake
-            if(recvLen == FAILURE) {
-               fprintf(stderr, "%s: Client %d failed to give proper handshake\n", prog, client.getID());
-               throw FAILURE;
-            } else if(recvLen == 0) {
-               fprintf(stderr, "%s: Client %d unexpectedly closed connection\n", prog, client.getID());
-               throw FAILURE;
-            } else if(reply.compare("helo\n") != 0) {
-               fprintf(stderr, "%s: Client %d failed to give proper handshake\n", prog, client.getID());
-               throw FAILURE;
-            }
-
-            // Tell the client we're ready for volume commands
-            if(client.send("redy\n") == FAILURE) {
-               if(verbose >= VERBOSE) {
-                  fprintf(stderr, "%s: Error sending data to client %d\n", prog, client.getID());
-               }
-            } else {
-               if(verbose >= VERBOSE) {
-                  printf("%s: Client %d given ready command to start issuing volume changes\n", prog, client.getID());
-               }
-            }
-
-            while(1) {
-               // Get the reply from the client
-               recvLen = client.receive(&reply);
-
-               // Validate the reply
-               if(recvLen == FAILURE) {
-                  fprintf(stderr, "%s: Error receiving data from client %d\n", prog, client.getID());
-               } else if(recvLen == 0) {
-                  fprintf(stderr, "%s: Client %d unexpectedly closed connection\n", prog, client.getID());
-                  break;
-               }
-
-               if(verbose >= VERBOSE) {
-                  printf("%s: Reply from client %d: %s\n", prog, client.getID(), reply.c_str());
-               }
-
-               // Check if requesting to end connection
-               if(reply.compare("end\n") == 0) {
-                  if(verbose >= VERBOSE) {
-                     printf("%s: client %d requested to close connection\n", prog, client.getID());
-                  }
-
-                  // Send an end confirmation
-                  client.send("end\n");
-
-                  // Use this is a way to exit the loop and close the connection gracefully
+            do {
+               // Get and process command from the client
+               commandResult = processCommand();
+               if(commandResult == FAILURE) {
                   throw FAILURE;
-
-               // Otherwise, treat reply as a change volume command
-               } else if(parseCommand(reply) == SUCCESS) {
-                  if(verbose >= VERBOSE) {
-                     printf("%s: client %d: volume change successful\n", prog, client.getID());
-                  }
-                  send = "ok\n";
-               // Anything else is an error
-               } else {
-                  if(verbose >= VERBOSE) {
-                     fprintf(stderr, "%s: client %d: volume change unsuccessful\n", prog, client.getID());
-                  }
-                  send = "err\n";
                }
+            } while(commandResult != END);
 
-               // Send the response
-               if(client.send(send) == FAILURE) {
-                  if(verbose >= VERBOSE) {
-                     fprintf(stderr, "%s: Error sending data to client %d\n", prog, client.getID());
-                  }
-                  throw FAILURE;
-               } else {
-                  if(verbose >= VERBOSE) {
-                     printf("%s: Volume change confirmation sent to client %d\n", prog, client.getID());
-                  }
-               }
+         } catch (int e) {
+            // If there was a failure in the command, send the end command to the client
+            if(client.send("end\n", useEnc) == FAILURE && verbose >= VERBOSE) {
+               fprintf(stderr, "%s: Error sending end command to client %d\n", prog, client.getID());
             }
-
-         } catch (int e) {}
+         }
 
          printf("%s: Closing connection with client %d\n", prog, client.getID());
          client.close();
@@ -204,11 +138,11 @@ int main(int argc, char* argv[]) {
       }
    }
 
-   // Wait for the kids to come home
+   // Wait for the remaining kids to come home
    int childStatus;
-   for(unsigned int i=0; i<children.size(); i++) {
-      if(waitpid(children[i], &childStatus, 0) != -1) {
-         children.erase(children.begin());
+   for(list<int>::iterator iter = children.begin(); iter != children.end(); iter++) {
+      if(waitpid(*iter, &childStatus, 0) != -1) {
+         children.erase(iter);
       }
    }
 
@@ -220,7 +154,238 @@ int main(int argc, char* argv[]) {
 }
 
 
-int parseCommand(const string command) {
+int clientHandshake() {
+   string reply;
+   int recvLen;
+
+   // Send helo
+   if(verbose >= VERBOSE) {
+      printf("%s: Sending helo to client %d\n", prog, client.getID());
+   }
+
+   if(client.send("helo\n") == FAILURE) {
+      if(verbose >= VERBOSE) {
+         fprintf(stderr, "%s: Error sending welcome to client %d\n", prog, client.getID());
+      }
+      return FAILURE;
+   }
+
+   // Reply to helo should be whether to use encryption or not
+   recvLen = client.receive(&reply, useEnc);
+
+   // Validate the reply
+   if(recvLen == FAILURE) {
+      fprintf(stderr, "%s: Client %d failed to give proper handshake\n", prog, client.getID());
+      return FAILURE;
+   } else if(recvLen == 0) {
+      fprintf(stderr, "%s: Client %d unexpectedly closed connection\n", prog, client.getID());
+      return FAILURE;
+   } else if(reply.compare("enc\n") == 0) {
+      clientEnc = 1;
+   } else if(reply.compare("noenc\n") == 0) {
+      clientEnc = 0;
+   } else {
+      fprintf(stderr, "%s: Client %d failed to give proper handshake\n", prog, client.getID());
+      return FAILURE;
+   }
+
+   // If the client requested encryption, exchange keys
+   if(clientEnc) {
+      if(verbose >= VERBOSE) {
+         printf("%s: Client %d requested encryption. Exchanging keys...\n", prog, client.getID());
+      }
+      // Send our public key
+      if(client.sendLocalPubKey() == FAILURE) {
+         fprintf(stderr, "%s: Failed to send local public key to client %d\n", prog, client.getID());
+         return FAILURE;
+      }
+
+      // Get the client's public key
+      if(client.receiveRemotePubKey() == FAILURE) {
+         return FAILURE;
+      }
+
+      // Send the AES key to the client (the sendAESKey() function takes care of encrypting it first)
+      if(client.sendAESKey() == FAILURE) {
+         fprintf(stderr, "%s: Failed to send AES key to client %d\n", prog, client.getID());
+         return FAILURE;
+      }
+
+      // Get the redy from the client that it is good to go
+      recvLen = client.receive(&reply, 0);
+
+      if(recvLen == FAILURE) {
+         fprintf(stderr, "%s: Client %d failed to send public key\n", prog, client.getID());
+         return FAILURE;
+      } else if(recvLen == 0) {
+         fprintf(stderr, "%s: Client %d unexpectedly closed connection\n", prog, client.getID());
+         return FAILURE;
+      } else if(reply.compare("redy\n") != 0) {
+         fprintf(stderr, "%s: Client %d failed encryption handshake\n", prog, client.getID());
+         return FAILURE;
+      }
+   }
+
+   // Send redy to tell the client the handshake is complete and we're ready to accept commands
+   if(client.send("redy\n", useEnc) == FAILURE) {
+      if(verbose >= VERBOSE) {
+         fprintf(stderr, "%s: Error sending data to client %d\n", prog, client.getID());
+         return FAILURE;
+      }
+   } else {
+      if(verbose >= VERBOSE) {
+         printf("%s: Client %d completed handshake\n", prog, client.getID());
+      }
+   }
+
+   return SUCCESS;
+}
+
+
+int processCommand() {
+   string reply;
+   string send;
+   int recvLen;
+
+   // Get the command
+   recvLen = client.receive(&reply, useEnc);
+
+   // Validate the reply
+   if(recvLen == FAILURE) {
+      fprintf(stderr, "%s: Error receiving command data from client %d\n", prog, client.getID());
+      return FAILURE;
+   } else if(recvLen == 0) {
+      fprintf(stderr, "%s: Client %d unexpectedly closed connection\n", prog, client.getID());
+      return FAILURE;
+   }
+
+   // Print the command if verbose
+   if(verbose >= VERBOSE) {
+      printf("%s: Reply from client %d: %s\n", prog, client.getID(), reply.c_str());
+   }
+
+   // End command
+   if(reply.compare("end\n") == 0) {
+      if(verbose >= VERBOSE) {
+         printf("%s: client %d requested to close connection\n", prog, client.getID());
+      }
+
+      // Send an end confirmation
+      client.send("bye\n", useEnc);
+
+      return END;
+   // Play command
+   } else if(reply.compare("play\n") == 0) {
+      if(verbose >= VERBOSE) {
+         printf("%s: Client %d issued play command\n", prog, client.getID());
+      }
+
+      // TODO: create and call mediakeys function
+
+      // Send ok
+      if(client.send("ok\n", useEnc) == FAILURE) {
+         if(verbose >= VERBOSE) {
+            fprintf(stderr, "%s: Error sending play command confirmation to client %d\n", prog, client.getID());
+         }
+         return FAILURE;
+      }
+
+      return SUCCESS;
+   // Next command
+   } else if(reply.compare("next\n") == 0) {
+      if(verbose >= VERBOSE) {
+         printf("%s: Client %d issued next command\n", prog, client.getID());
+      }
+
+      // TODO: create and call mediakeys function
+
+      // Send ok
+      if(client.send("ok\n", useEnc) == FAILURE) {
+         if(verbose >= VERBOSE) {
+            fprintf(stderr, "%s: Error sending next command confirmation to client %d\n", prog, client.getID());
+         }
+         return FAILURE;
+      }
+
+      return SUCCESS;
+   // Prev command
+   } else if(reply.compare("prev\n") == 0) {
+      if(verbose >= VERBOSE) {
+         printf("%s: Client %d issued prev command\n", prog, client.getID());
+      }
+
+      // TODO: create and call mediakeys function
+
+      // Send ok
+      if(client.send("ok\n", useEnc) == FAILURE) {
+         if(verbose >= VERBOSE) {
+            fprintf(stderr, "%s: Error sending prev command confirmation to client %d\n", prog, client.getID());
+         }
+         return FAILURE;
+      }
+
+      return SUCCESS;
+   // Volume command
+   } else if(reply.compare("vol\n") == 0) {
+      if(verbose >= VERBOSE) {
+         printf("%s: Client %d issued volume command\n", prog, client.getID());
+      }
+
+      // Send ok
+      if(client.send("ok\n", useEnc) == FAILURE) {
+         if(verbose >= VERBOSE) {
+            fprintf(stderr, "%s: Error sending volume command confirmation to client %d\n", prog, client.getID());
+         }
+         return FAILURE;
+      }
+
+      // Get volume command arg (channel and vol percent)
+      recvLen = client.receive(&reply, useEnc);
+
+      // Validate the reply
+      if(recvLen == FAILURE) {
+         fprintf(stderr, "%s: Error receiving command data from client %d\n", prog, client.getID());
+         return FAILURE;
+      } else if(recvLen == 0) {
+         fprintf(stderr, "%s: Client %d unexpectedly closed connection\n", prog, client.getID());
+         return FAILURE;
+      }
+
+      // Change the volume
+      if(parseVolCommand(reply) == SUCCESS) {
+         if(verbose >= VERBOSE) {
+            printf("%s: client %d: volume change successful\n", prog, client.getID());
+         }
+         send = "ok\n";
+      } else {
+         if(verbose >= VERBOSE) {
+            fprintf(stderr, "%s: client %d: volume change unsuccessful\n", prog, client.getID());
+         }
+         send = "err\n";
+      }
+
+      // Send the response
+      if(client.send(send, useEnc) == FAILURE) {
+         if(verbose >= VERBOSE) {
+            fprintf(stderr, "%s: Error command reply to client %d\n", prog, client.getID());
+         }
+         return FAILURE;
+      } else {
+         if(verbose >= VERBOSE) {
+            printf("%s: Volume change confirmation sent to client %d\n", prog, client.getID());
+         }
+      }
+
+      return SUCCESS;
+   // Unknown command
+   } else {
+      fprintf(stderr, "%s: client %d sent unknown command\n", prog, client.getID());
+      return FAILURE;
+   }
+}
+
+
+int parseVolCommand(const string command) {
    // Command should be in the format [channel]=[leftVol],[rightVol]
    string channel;
    int equalsIndex, commaIndex;
@@ -248,19 +413,26 @@ void sigHandler(const int signal) {
       }
 
       // Kill the children
-      for(unsigned int i=0; i<children.size(); i++) {
-         kill(children[i], SIGTERM);
+      for(list<int>::iterator iter = children.begin(); iter != children.end(); iter++) {
+         kill(*iter, SIGTERM);
       }
 
       // Stop the server and exit
       server.stop();
       exit(NORMAL_EXIT);
+   // Remove a child from the list if it returned
+   } else if(signal == SIGCHLD) {
+      // Get the pid of the child that returned
+      pid_t child = waitpid(-1, NULL, WNOHANG);
+      if(child != -1) {
+         children.remove(child);
+      }
+
    }
 }
 
 
 int changeVolume(const string channel, const int leftVolume, const int rightVolume) {
-   const char *alsaBinary = "amixer";
    stringstream vol;
 
    // Construct the volume string
@@ -283,22 +455,22 @@ int changeVolume(const string channel, const int leftVolume, const int rightVolu
       }
 
       // Execute the alsa binary to change the volume
-      if(execlp(alsaBinary, alsaBinary, "sset", channel.c_str(), vol.str().c_str(), NULL) == -1) {
-         fprintf(stderr, "%s: Failed to execute \"%s\": %s\n", prog, alsaBinary, strerror(errno));
+      if(execlp(ALSA_BINARY, ALSA_BINARY, "sset", channel.c_str(), vol.str().c_str(), NULL) == -1) {
+         fprintf(stderr, "%s: Failed to execute \"%s\": %s\n", prog, ALSA_BINARY, strerror(errno));
       }
    } else {
       // Wait for the fork to exit and return its exit code
       waitpid(pid, &status, 0);
 
       if(verbose >= DBL_VERBOSE) {
-         printf("%s: %s exited with exit code %d\n", prog, alsaBinary, status);
+         printf("%s: %s exited with exit code %d\n", prog, ALSA_BINARY, status);
       }
 
       return status;
    }
 
    // How did you get here?
-   return -1;
+   return FAILURE;
 }
 
 

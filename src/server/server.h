@@ -3,7 +3,7 @@
 // shanetully.com
 // https://github.com/shanet/Alsa-Channel-Control
 
-#include <vector>
+#include <list>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,37 +14,37 @@
 #include <sys/wait.h>
 
 #include "Server.h"
+#include "Constants.h"
 
-
-#define NAME "Alsa Control Server"
+#define NAME    "Alsa Control Server"
 #define VERSION "3.2.0-beta"
 
 #define DEFAULT_PORT 4242
-#define NORMAL_EXIT 0
-#define ABNORMAL_EXIT 1
-#define PARSE_ERROR 2
-#define P_BUFFER 512
 
-#define NO_VERBOSE 0
-#define VERBOSE 1
-#define DBL_VERBOSE 2
-#define TPL_VERBOSE 3
+// The program to actually change the volume
+#define ALSA_BINARY "amixer"
 
 using namespace std;
 
 
 char *prog;              // Name of the program
+int useEnc;              // Use encryption or not
+int clientEnc;           // If the client requested encryption
 int verbose;             // The verbose level
 Server server;           // The main server object
-Client client;           // Clients connected to the server
-vector<int> children;    // Array of PIDs of all children created
+Client client;           // Client connected to the server
+list<int> children;      // List of PIDs of all children created
 
 
-static void sigHandler(const int);
+int clientHandshake();
 
-int parseCommand(const string command);
+int processCommand();
+
+int parseVolCommand(const string commandArg);
 
 int changeVolume(const string channel, const int leftVolume, const int rightVolume);
+
+void sigHandler(const int signal);
 
 void printUsage();
 

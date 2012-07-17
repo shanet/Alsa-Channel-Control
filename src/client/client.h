@@ -11,27 +11,23 @@
 #include <getopt.h>
 
 #include "Client.h"
+#include "Constants.h"
 
 
-#define NAME "Alsa Control Client"
+#define NAME    "Alsa Control Client"
 #define VERSION "3.2.0-beta"
 
 #define DEFAULT_CLIENT "127.0.0.1"
-#define DEFAULT_PORT 4242
-#define NORMAL_EXIT 0
-#define ABNORMAL_EXIT 1
-
-#define NO_VERBOSE 0
-#define VERBOSE 1
-#define DBL_VERBOSE 2
-#define TPL_VERBOSE 3
-
+#define DEFAULT_PORT   4242
 
 using namespace std;
 
 
-int verbose;    // Level of verbosity to use
+int  verbose;   // Level of verbosity to use
 char *prog;     // Name of the program
+int  useEnc;    // Encrypt communications with the server
+
+int serverHandshake();
 
 void printUsage();
 
