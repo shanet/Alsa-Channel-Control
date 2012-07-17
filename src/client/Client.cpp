@@ -6,29 +6,16 @@
 #include "Client.h"
 #include <iostream>
 
-Client::Client(string host, int port, int useEnc) {
+Client::Client(string host, int port) {
    this->host = host;
 
    // Let setPort do validation on the port range
    setPort(port);
-
-   // If using encryption, init the crypto object
-   // otherwise just set it to null
-   if(useEnc) {
-      crypto = new Crypto();
-   } else {
-      crypt = NULL;
-   }
 }
 
 
 Client::~Client() {
    freeaddrinfo(serverInfo);
-
-   if(crypto != NULL) {
-      delete crypto;
-      crypto = NULL;
-   }
 }
 
 
@@ -104,49 +91,23 @@ void Client::closeConnection() {
 }
 
 
-int Client::send(string data, int encType) {
-   // If using encryption, encrypt the data to send first with the specified encryption type
-   unsigned char *msg = NULL;
-   size_t msgLen;
-   if((encType == ENC_RSA || encType == ENC_AES) && crypto != NULL) {
-      if(encType == ENC_RSA && (msgLen = crypto->rsaEncrypt(data, &msg)) == FAILURE) {
-         return FAILURE;
-      } else if((msgLen = crypto->aesEncrypt(data, &msg)) == FAILURE) {
-         return FAILURE;
-      }
-   } else {
-      msg = (unsigned char*) data.c_str();
-      msgLen = data.length();
-   }
-
-   return ::send(connSock, msg, msgLen, 0);
+int Client::send(string data) {
+   return ::send(connSock, data.c_str(), data.length(), 0);
 }
 
 
-int Client::receive(string *reply, int encType) {
-   unsigned char *tmpReply = (unsigned char*) malloc(BUFFER);
+int Client::receive(string *reply) {
+   char *tmpReply = new char[BUFFER];
 
-   int recvLen = recv(connSock, tmpReply, BUFFER, 0);
+   int recvLen = recv(connSock, tmpReply, BUFFER-1, 0);
 
-   // Attempt decryption with the given encryption type if asked for
-   if((encType == ENC_RSA || encType == ENC_AES) && crypto != NULL) {
-      if(encType == ENC_AES) {
-         *reply = crypto->aesDecrypt(tmpReply, recvLen);
-      } else {
-         *reply = crypto->rsaDecrypt(tmpReply, recvLen);
-      }
-    
-      // If the decryption resulted in an empty string, it failed
-      if(reply->length() == 0) {
-         return FAILURE;
-      }
    // Add null terminator only if recvLen is >= 0 to avoid going out of bounds
-   } else if(recvLen >= 0) {
+   if(recvLen >= 0) {
       tmpReply[recvLen] = '\0';
-      *reply = (char*) tmpReply;
+      *reply = tmpReply;
    }
 
-   free(tmpReply);
+   delete tmpReply;
    tmpReply = NULL;
 
    return recvLen;
@@ -181,50 +142,4 @@ void Client::setPort(int port) {
 
 void Client::setHost(string host) {
    this->host = host;
-}
-
-
-int Client::sendLocalPubKey() {
-   unsigned char *pubKey;
-
-   int pubKeyLen = crypto->getLocalPubKey(&pubKey);
-
-   return ::send(socket, pubKey, pubKeyLen, 0);
-}
-
-
-int Client::receiveRemotePubKey() {
-   // TODO
-   return 0;
-   //return crypto->setRemotePubKey(pubKey, pubKeyLen);
-}
-
-
-int Client::sendAESKey() {
-   unsigned char *aesKey;
-   unsigned char *encAesKey;
-   size_t aesKeyLen;
-   size_t encAesKeyLen;
-   int sendStatus;
-
-   // Get the AES key
-   aesKeyLen = crypto->getLocalAESKey(&aesKey);
-
-   // Encrypt the AES with RSA
-   encAesKeyLen = crypto->rsaEncrypt(aesKey, aesKeyLen, &encAesKey);
-
-   // Send the encrypted AES key to remote
-   sendStatus = ::send(socket, encAesKey, encAesKeyLen, 0);
-
-   // Encrypted messages are dynamically allocated in the encrypt function so they need free'd
-   free(encAesKey);
-   encAesKey = NULL;
-
-   return sendStatus;
-}
-
-
-int Client::receiveAESKey() {
-   // TODO
-   return 0;
 }

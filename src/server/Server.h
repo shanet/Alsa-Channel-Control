@@ -6,8 +6,10 @@
 #include <sstream>
 
 #include "Client.h"
-#include "Crypto.h"
-#include "Constants.h"
+
+#define SUCCESS 0
+#define FAILURE -1
+#define BUFFER 1000
 
 // Defaults
 #define DEFAULT_BACKLOG 10
@@ -25,7 +27,7 @@ using namespace std;
 class Server {
 
 public:
-   Server(int port, int useCrypto=0, int backlog=DEFAULT_BACKLOG);
+   Server(int port, int backlog=DEFAULT_BACKLOG);
 
    Server();
 
@@ -49,8 +51,6 @@ private:
    int backlog;
    int listSock;
    addrinfo *serverInfo;
-   int useCrypto;
-   Crypto *crypto;
 
    int getAddressInfo(int aiFamily, int aiFlags);
 

@@ -9,12 +9,12 @@
 #include <unistd.h>
 #include <netdb.h>
 
-#include <openssl/evp.h>
 #include <string>
-
-#include "Constants.h"
 #include "string.h"
-#include "Crypto.h"
+
+#define SUCCESS 0
+#define FAILURE -1
+#define BUFFER 1000
 
 using namespace std;
 
@@ -30,13 +30,11 @@ public:
 
    ~Client();
 
-   int send(string data, int useEnc=0);
+   int send(string data);
 
-   int receive(string *reply, int useEnc=0);
+   int receive(string *reply);
 
    void close();
-
-   int setPublicKey(unsigned char *clientPubKey, size_t clientPubKeyLen);
 
    string getIPAddress();
 
@@ -46,20 +44,10 @@ public:
 
    int getID();
 
-   // Crypto handshake functions
-   int sendLocalPubKey();
-
-   int receiveRemotePubKey();
-
-   int sendAESKey();
-
-   int receiveAESKey();
-
 private:
    int id;
-   int socket;
-   sockaddr_storage clientInfo;
-   Crypto *crypto;
+	int socket;
+	sockaddr_storage clientInfo;
 };
 
 #endif

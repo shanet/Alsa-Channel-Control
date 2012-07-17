@@ -13,12 +13,13 @@
 #include <string.h>
 #include <sstream>
 
-#include "Constants.h"
-#include "Crypto.h"
+#define SUCCESS 0
+#define FAILURE -1
+#define BUFFER 1000
 
 // Error codes
-#define FAILED_TO_CONNECT       2
-#define FAILED_TO_LISTEN        3
+#define FAILED_TO_CONNECT 2
+#define FAILED_TO_LISTEN 3
 #define FAILED_TO_GET_ADDR_INFO 4
 
 using namespace std;
@@ -32,9 +33,9 @@ public:
 
    int connectToServer(int aiFamily=AF_UNSPEC);
    
-   int send(string data, int useEnc=0);
+   int send(string data);
 
-   int receive(string *reply, int useEnc=0);
+   int receive(string *reply);
 
    void closeConnection();
 
@@ -48,21 +49,11 @@ public:
 
    void setHost(string host);
 
-   // Crypto handshake functions
-   int sendLocalPubKey();
-
-   int receiveRemotePubKey();
-
-   int sendAESKey();
-
-   int receiveAESKey();
-
 private:
    string host;
    int port;
    int connSock;
    addrinfo *serverInfo;
-   Crypto *crypto;
 
    int getAddressInfo(int aiFamily=AF_UNSPEC);
    

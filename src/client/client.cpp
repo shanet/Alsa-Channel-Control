@@ -15,24 +15,34 @@ int main(int argc, char *argv[]) {
 
    // Set the program name we're running under and default verbose level
    prog = argv[0];
-   useEnc = 0;
    verbose = NO_VERBOSE;
 
    // Valid long options
    static struct option longOpts[] = {
-      {"host",    required_argument, NULL, 'H'},
-      {"port",    required_argument, NULL, 'p'},
-      {"encrypt", no_argument,       NULL, 'e'},
+      {"host", required_argument, NULL, 'H'},
+      {"port", required_argument, NULL, 'p'},
       {"channel", required_argument, NULL, 'c'},
-      {"volume",  required_argument, NULL, 'v'},
-      {"verbose", no_argument,       NULL, 'V'},
-      {"version", no_argument,       NULL, 'q'},
-      {"help",    no_argument,       NULL, 'h'}
+      {"volume", required_argument, NULL, 'v'},
+      {"verbose", no_argument, NULL , 'V'},
+      {"version", no_argument, NULL, 'q'},
+      {"help", no_argument, NULL, 'h'}
    };
 
    // Parse the command line args
-   while((c = getopt_long(argc, argv, "Hp:ec:v:Vqh", longOpts, &optIndex)) != -1) {
+   while((c = getopt_long(argc, argv, "hqVH:p:c:v:", longOpts, &optIndex)) != -1) {
       switch(c) {
+         // Print help
+         case 'h':
+            printUsage();
+            return NORMAL_EXIT;
+         // Print version
+         case 'q':
+            printVersion();
+            return NORMAL_EXIT;
+         // Set verbose level
+         case 'V':
+            verbose++;
+            break;
          // The host to connect to
          case 'H':
             server = optarg;
@@ -48,18 +58,6 @@ int main(int argc, char *argv[]) {
          case 'v':
             vols.push_back(optarg);
             break;
-         // Set verbose level
-         case 'V':
-            verbose++;
-            break;
-         // Print version
-         case 'q':
-            printVersion();
-            return NORMAL_EXIT;
-         // Print help
-         case 'h':
-            printUsage();
-            return NORMAL_EXIT;
          // Invalid option
          case '?':
          default:
@@ -96,12 +94,32 @@ int main(int argc, char *argv[]) {
    string reply;
 
    try {
-      // Do the handshake with the server
-      int handshakeStatus = serverHandshake();
-      if(handshakeStatus == FAILURE) {
+      // Get initial welcome from server
+      client.receive(&reply);
+      if(reply.compare("helo\n") != 0) {
+         fprintf(stderr, "%s: Server did not send proper handshake\n", prog);
          throw FAILURE;
-      } else if(handshakeStatus == END) {
-         throw END;
+      }
+
+      // Complete handshake
+      if(client.send("helo\n") == FAILURE) {
+         fprintf(stderr, "%s: Failed to complete handshake\n", prog);
+         throw FAILURE;
+      } else {
+         if(verbose >= DBL_VERBOSE) {
+            printf("%s: Completed handshake with server.\n", prog);
+         }
+      }
+
+      // Wait for the ready command to start sending volume commands
+      client.receive(&reply);
+      if(reply.compare("redy\n") != 0) {
+         fprintf(stderr, "%s: Expected 'redy' command, but none received\n", prog);
+         throw FAILURE;
+      } else {
+         if(verbose >= DBL_VERBOSE) {
+            printf("%s: Server ready to accept volume commands\n", prog);
+         }
       }
 
       // Send as many commands as there are in the channels vector
@@ -160,11 +178,11 @@ int main(int argc, char *argv[]) {
    }
 
    // End the connection gracefully
-   client.send("end\n", useEnc);
+   client.send("end\n");
 
    // Check for end confirmation
-   client.receive(&reply, useEnc);
-   if(reply.compare("bye\n") != 0) {
+   client.receive(&reply);
+   if(reply.compare("end\n") != 0) {
       // If we didn't get it, oh well.
       if(verbose >= DBL_VERBOSE) {
          fprintf(stderr, "%s: Server failed to send end connection confirmation\n", prog);
@@ -175,93 +193,6 @@ int main(int argc, char *argv[]) {
    client.closeConnection();
 
    return NORMAL_EXIT;
-}
-
-
-int serverHandshake() {
-   string reply;
-   int recvLen;
-
-   // Print that we're connected
-   if(verbose >= VERBOSE) {
-      printf("%s: Connected to server... starting handshake...\n", prog);
-   }
-
-   // Get initial welcome from server
-   client.receive(&reply, 0);
-
-   // Validate the reply
-   if(recvLen == FAILURE) {
-      fprintf(stderr, "%s: Server failed to give proper handshake\n", prog);
-      return FAILURE;
-   } else if(recvLen == 0) {
-      fprintf(stderr, "%s: Server unexpectedly closed connection\n", prog);
-      return FAILURE;
-   } else if(reply.compare("helo\n") != 0) {
-      fprintf(stderr, "%s: Server did not send proper handshake\n", prog);
-      return FAILURE;
-   } else if(reply.compare("end\n") == 0) {
-      return END;
-   }
-
-   // Tell the server if we're using encryption or not
-   if(client.send(((useEnc) ? "enc\n" : "noenc\n"), 0) == FAILURE) {
-      if(verbose >= VERBOSE) {
-         fprintf(stderr, "%s: Error sending encryption type to server\n", prog);
-      }
-      return FAILURE;
-   }
-
-   // If using encryption, exchange keys
-   if(useEnc) {
-      // Get the server's pub key
-      if(client.receiveRemotePubKey() == FAILURE) {
-         return FAILURE;
-      }
-
-      // Send our public key
-      if(client.sendLocalPubKey() == FAILURE) {
-         return FAILURE;
-      }
-
-      // Get the AES key
-      if(client.receiveAESKey() == FAILURE) {
-         return FAILURE;
-      }
-
-      // Send a redy command to let the server know we're good to go (this is the last unecrypted message)
-      if(client.send("redy\n", 0) == FAILURE) {
-         if(verbose >= VERBOSE) {
-            fprintf(stderr, "%s: Error completing handshake with server\n", prog);
-         }
-         return FAILURE;
-      }
-   }
-
-   // Not using encryption
-   } else {
-      // Wait for the redy confirmation from the server
-      recvLen = client.receive(&reply, 0);
-
-      // Validate the reply
-      if(recvLen == FAILURE) {
-         fprintf(stderr, "%s: Server failed to give proper handshake\n", prog);
-         return FAILURE;
-      } else if(recvLen == 0) {
-         fprintf(stderr, "%s: Server unexpectedly closed connection\n", prog);
-         return FAILURE;
-      } else if(reply.compare("end\n") == 0) {
-         return END;
-      } else if(reply.compare("redy\n") != 0) {
-         return FAILURE;
-      }
-   }
-
-   if(verbose >= VERBOSE) {
-      printf("%s: Completed handshake with server\n", prog);
-   }
-
-   return SUCCESS;
 }
 
 
