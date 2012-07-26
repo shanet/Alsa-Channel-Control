@@ -17,7 +17,7 @@ Client::Client() {
    // This constructor should never be called. It's only here for the good 
    // practice of providing a default constructor
    socket = -1;
-   id = -1;
+   id     = -1;
    crypto = NULL;
 }
 
@@ -88,14 +88,15 @@ void Client::close() {
 }
 
 
-int Client::setPublicKey(unsigned char *clientPubKey, size_t clientPubKeyLen) {
-   // If crypto hasn't been init'd yet, init it
-   if(crypto == NULL) {
-      crypto = new Crypto();
+int Client::initCrypto() {
+   if(crypto != NULL) {
+      return FAILURE;
    }
 
-   return crypto->setRemotePubKey(clientPubKey, clientPubKeyLen);
+   crypto = new Crypto();
+   return SUCCESS;
 }
+
 
 string Client::getIPAddress() {
    // Make the IP long enough for IPv6 addresses, even though we currently only support IPv4
@@ -127,14 +128,30 @@ int Client::sendLocalPubKey() {
 
    int pubKeyLen = crypto->getLocalPubKey(&pubKey);
 
-   return ::send(socket, pubKey, pubKeyLen, 0);
+   printf("Sending pubkey: %s\n", (char*)pubKey);
+
+   int sendStatus = ::send(socket, pubKey, pubKeyLen, 0);
+
+   free(pubKey);
+   pubKey = NULL;
+
+   return sendStatus;
 }
 
 
 int Client::receiveRemotePubKey() {
-   // TODO
-   return 0;
-   //return crypto->setRemotePubKey(pubKey, pubKeyLen);
+   string pubKey;
+   int pubKeyLen = receive(&pubKey);
+
+   // Validate the reply
+   if(pubKeyLen == FAILURE) {
+      return FAILURE;
+   } else if(pubKeyLen == 0) {
+      return END;
+   }
+
+   // Set the public key in the crypto object
+   return crypto->setRemotePubKey((unsigned char*)pubKey.c_str(), pubKeyLen);
 }
 
 
@@ -163,6 +180,16 @@ int Client::sendAESKey() {
 
 
 int Client::receiveAESKey() {
-   // TODO
-   return 0;
+   string aesKey;
+   int aesKeyLen = receive(&aesKey);
+
+   // Validate the reply
+   if(aesKeyLen == FAILURE) {
+      return FAILURE;
+   } else if(aesKeyLen == 0) {
+      return END;
+   }
+
+   // Set the public key in the crypto object
+   return crypto->setRemotePubKey((unsigned char*)aesKey.c_str(), aesKeyLen);
 }

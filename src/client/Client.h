@@ -26,7 +26,9 @@ using namespace std;
 class Client {
 	
 public:
-   Client(string host, int port);
+   Client(string host, int port, int useEnc=0);
+
+   Client();
 
    ~Client();
 
@@ -48,6 +50,8 @@ public:
 
    void setHost(string host);
 
+   int isConnected() const;
+
    // Crypto handshake functions
    int sendLocalPubKey();
 
@@ -61,6 +65,7 @@ private:
    string host;
    int port;
    int connSock;
+   int mIsConnected;
    addrinfo *serverInfo;
    Crypto *crypto;
 

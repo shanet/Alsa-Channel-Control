@@ -43,11 +43,14 @@ public:
 
    int getPort() const;
 
+   int isStarted() const;
+
 private:
    int numClients;
    int port;
    int backlog;
    int listSock;
+   int mIsStarted;
    addrinfo *serverInfo;
    int useCrypto;
    Crypto *crypto;

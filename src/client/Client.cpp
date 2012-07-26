@@ -17,8 +17,22 @@ Client::Client(string host, int port, int useEnc) {
    if(useEnc) {
       crypto = new Crypto();
    } else {
-      crypt = NULL;
+      crypto = NULL;
    }
+
+   // Init other member variables
+   serverInfo = NULL;
+   mIsConnected = 0;
+}
+
+
+Client::Client() {
+   host         = "";
+   port         = -1;
+   connSock     = -1;
+   serverInfo   = NULL;
+   crypto       = NULL;
+   mIsConnected = 0;
 }
 
 
@@ -44,6 +58,7 @@ int Client::connectToServer(int aiFamily) {
    }
 
    // Yay!
+   mIsConnected = 1;
    return SUCCESS;
 }
 
@@ -101,6 +116,7 @@ int Client::connect() {
 
 void Client::closeConnection() {
    close(connSock);
+   mIsConnected = 0;
 }
 
 
@@ -184,19 +200,39 @@ void Client::setHost(string host) {
 }
 
 
+int Client::isConnected() const {
+   return mIsConnected;
+}
+
+
 int Client::sendLocalPubKey() {
    unsigned char *pubKey;
 
    int pubKeyLen = crypto->getLocalPubKey(&pubKey);
 
-   return ::send(socket, pubKey, pubKeyLen, 0);
+   return ::send(connSock, pubKey, pubKeyLen, 0);
 }
 
 
 int Client::receiveRemotePubKey() {
-   // TODO
-   return 0;
-   //return crypto->setRemotePubKey(pubKey, pubKeyLen);
+   string pubKey;
+   int pubKeyLen = receive(&pubKey);
+
+   // Validate the reply
+   if(pubKeyLen == FAILURE) {
+      return FAILURE;
+   } else if(pubKeyLen == 0) {
+      return END;
+   }
+
+   fprintf(stderr, "%s\n", pubKey.c_str());
+   fprintf(stderr, "%d\n", strlen(pubKey.c_str()));
+   fprintf(stderr, "%d\n\n", pubKeyLen);
+
+   // Set the public key in the crypto object
+   crypto->setRemotePubKey((unsigned char*)pubKey.c_str(), pubKeyLen);
+fprintf(stderr, "debug2\n");
+   return SUCCESS;
 }
 
 
@@ -214,7 +250,7 @@ int Client::sendAESKey() {
    encAesKeyLen = crypto->rsaEncrypt(aesKey, aesKeyLen, &encAesKey);
 
    // Send the encrypted AES key to remote
-   sendStatus = ::send(socket, encAesKey, encAesKeyLen, 0);
+   sendStatus = ::send(connSock, encAesKey, encAesKeyLen, 0);
 
    // Encrypted messages are dynamically allocated in the encrypt function so they need free'd
    free(encAesKey);
@@ -225,6 +261,16 @@ int Client::sendAESKey() {
 
 
 int Client::receiveAESKey() {
-   // TODO
-   return 0;
+   string aesKey;
+   int aesKeyLen = receive(&aesKey);
+
+   // Validate the reply
+   if(aesKeyLen == FAILURE) {
+      return FAILURE;
+   } else if(aesKeyLen == 0) {
+      return END;
+   }
+
+   // Set the public key in the crypto object
+   return crypto->setRemotePubKey((unsigned char*)aesKey.c_str(), aesKeyLen);
 }

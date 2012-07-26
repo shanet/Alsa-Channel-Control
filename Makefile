@@ -34,19 +34,22 @@ CFLAGS_DEBUG=-ggdb
 
 LIBRARIES=-lcrypto
 
+.PHONY: server server_debug client client_debug
 
 all: server client android
 
-server: $(SERVER_OBJECTS) $(CRYPTO_OBJECTS)
+debug: server_debug client_debug
+
+server: $(SERVER_SOURCES) $(CRYPTO_SOURCES)
 	$(CC) $(CFLAGS_COMMON) $(CFLAGS) -o bin/$(SERVER_BINARY) $(SERVER_OBJECTS) $(CRYPTO_OBJECTS) $(LIBRARIES)
 
-server_debug: $(SERVER_OBJECTS) $(CRYPTO_OBJECTS)
+server_debug: $(SERVER_SOURCES) $(CRYPTO_SOURCES)
 	$(CC) $(CFLAGS_COMMON) $(CFLAGS_DEBUG) -o bin/$(SERVER_BINARY) $(SERVER_OBJECTS) $(CRYPTO_OBJECTS) $(LIBRARIES)
 
-client: $(CLIENT_OBJECTS) $(CRYPTO_OBJECTS)
+client: $(CLIENT_SOURCES) $(CRYPTO_SOURCES)
 	$(CC) $(CFLAGS_COMMON) $(CFLAGS) -o bin/$(CLIENT_BINARY) $(CLIENT_OBJECTS) $(CRYPTO_OBJECTS) $(LIBRARIES)
 
-client_debug: $(CLIENT_OBJECTS) $(CRYPTO_OBJECTS)
+client_debug: $(CLIENT_SOURCES) $(CRYPTO_SOURCES)
 	$(CC) $(CFLAGS_COMMON) $(CFLAGS_DEBUG) -o bin/$(CLIENT_BINARY) $(CLIENT_OBJECTS) $(CRYPTO_OBJECTS) $(LIBRARIES)
 
 
@@ -92,12 +95,12 @@ bin_tar: all
 	
 	rm -rf $(PROJ_NAME)
 
-.$(LANG).o:
-	$(CC) $(CFLAGS_COMMON) -c $< -o $@
+#.$(LANG).o:
+#	$(CC) $(CFLAGS_COMMON) -c $< -o $@
 
 clean:
-	rm -f $(wildcard src/server/*.o)
-	rm -f $(wildcard src/client/*.o)
-	rm -f $(wildcard src/crypto/*.o)
+	rm -f $(SERVER_OBJECTS)
+	rm -f $(CLIENT_OBJECTS)
+	rm -f $(CRYPTO_OBJECTS)
 	rm -f bin/$(SERVER_BINARY) bin/$(CLIENT_BINARY) bin/$(ANDROID_CLIENT_BINARY)
 	rm -f $(BIN_TAR)

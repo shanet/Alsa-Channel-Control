@@ -10,7 +10,7 @@ using namespace std;
 EVP_PKEY* Crypto::localKeypair;
 
 Crypto::Crypto() {
-    localKeypair = NULL;
+    localKeypair  = NULL;
     remotePubKey  = NULL;
     rsaSymKey     = NULL;
     rsaSymKeyLen  = 0;
@@ -26,7 +26,7 @@ Crypto::Crypto() {
 
 
 Crypto::Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen) {
-    localKeypair = NULL;
+    localKeypair  = NULL;
     remotePubKey  = NULL;
     rsaSymKey     = NULL;
     rsaSymKeyLen  = 0;
@@ -43,7 +43,7 @@ Crypto::Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen) {
 
 
 Crypto::Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen, size_t rsaKeyLen, size_t aesKeyLen) {
-    localKeypair = NULL;
+    localKeypair  = NULL;
     remotePubKey  = NULL;
     rsaSymKey     = NULL;
     rsaSymKeyLen  = 0;
@@ -265,6 +265,9 @@ int Crypto::getLocalPubKey(unsigned char** pubKey) {
     
     BIO_read(bio, *pubKey, pubKeyLen);
 
+    // Insert the null terminator
+    (*pubKey)[pubKeyLen] = '\0';
+
     BIO_free_all(bio);
 
     return pubKeyLen;
@@ -273,7 +276,8 @@ int Crypto::getLocalPubKey(unsigned char** pubKey) {
 
 int Crypto::getLocalPriKey(unsigned char **priKey) {
     BIO *bio = BIO_new(BIO_s_mem());
-    // TODO fix this. it doesn't work.
+
+    // TODO fix this! It doesn't work.
     PEM_write_bio_PrivateKey(bio, localKeypair, EVP_aes_128_cbc(), rsaSymKey, rsaSymKeyLen, 0, NULL);
 
     int priKeyLen = BIO_pending(bio);
@@ -281,10 +285,14 @@ int Crypto::getLocalPriKey(unsigned char **priKey) {
     
     BIO_read(bio, *priKey, priKeyLen);
 
+    // Insert the null terminator
+    (*priKey)[priKeyLen] = '\0';
+
     BIO_free_all(bio);
 
     return priKeyLen;
 }
+
 
 int Crypto::getLocalAESKey(unsigned char **aesKey) {
     *aesKey = this->aesKey;

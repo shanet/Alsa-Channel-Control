@@ -23,11 +23,16 @@
 using namespace std;
 
 
-int  verbose;   // Level of verbosity to use
-char *prog;     // Name of the program
-int  useEnc;    // Encrypt communications with the server
+int    verbose;   // Level of verbosity to use
+char   *prog;     // Name of the program
+int    useEnc;    // Encrypt communications with the server
+Client client;    // The client object that communicates with the server
 
 int serverHandshake();
+
+int sendVolCmd(vector<string> channels, vector<string> vols);
+
+int sendMediaCmd(int commandType);
 
 void printUsage();
 

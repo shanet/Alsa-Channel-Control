@@ -36,7 +36,7 @@ public:
 
    void close();
 
-   int setPublicKey(unsigned char *clientPubKey, size_t clientPubKeyLen);
+   int initCrypto();
 
    string getIPAddress();
 

@@ -19,16 +19,20 @@ Server::Server(int port, int useCrypto, int backlog) {
    // Default backlog if not valid
    this->backlog = (backlog > 0) ? backlog : DEFAULT_BACKLOG;
 
+   // Init some other class members
+   serverInfo = NULL;
    numClients = 0;
+   mIsStarted  = 0;
 }
 
 Server::Server() {
    numClients = 0;
-   port = -1;
-   backlog = DEFAULT_BACKLOG;
-   listSock = -1;
+   port       = -1;
+   backlog    = DEFAULT_BACKLOG;
+   listSock   = -1;
    serverInfo = NULL;
-   useCrypto = 0;
+   useCrypto  = 0;
+   mIsStarted  = 0;
 }
 
 Server::~Server() {
@@ -64,6 +68,7 @@ int Server::start(int aiFamily, int aiFlags) {
    }
 
    // Yay!
+   mIsStarted = 1;
    return SUCCESS;
 }
 
@@ -142,32 +147,11 @@ Client Server::acceptConnection() {
 
 void Server::stop() {
    close(listSock);
+   mIsStarted = 0;
 }
 
 
-/*int Server::send(int connSock, string data) {
-   return ::send(connSock, data.c_str(), data.length(), 0);
-}
-
-
-int Server::receive(int connSock, string *reply) {
-   char *tmpReply = new char[BUFFER];
-
-   int recvLen = recv(connSock, tmpReply, BUFFER, 0);
-
-   // Add null terminator only if recvLen is >= 0 to avoid going out of bounds
-   if(recvLen >= 0) {
-      tmpReply[recvLen] = '\0';
-      *reply = tmpReply;
-   }
-
-   delete tmpReply;
-
-   return recvLen;
-}
-
-  
-string Server::getIPAddress(sockaddr_storage *connAddr) {
+/*string Server::getIPAddress(sockaddr_storage *connAddr) {
 	// Make the IP long enough for IPv6 addresses, even though we currently only support IPv4
    char ip[INET6_ADDRSTRLEN];
 
@@ -181,6 +165,7 @@ void Server::setPort(int port) {
    this->port = port;
 }
 
+
 int Server::getListSock() const {
    return listSock;
 }
@@ -188,4 +173,9 @@ int Server::getListSock() const {
 
 int Server::getPort() const {
 	return port;
+}
+
+
+int Server::isStarted() const {
+   return mIsStarted;
 }

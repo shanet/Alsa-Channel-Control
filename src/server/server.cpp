@@ -10,6 +10,7 @@ int main(int argc, char* argv[]) {
    int pid;                   // Pid for forking on startup
    char c;                    // Char for processing command line args
    int optIndex;              // Index of long opts for processing command line args
+   int noFork = 0;            // To fork or not to fork, that is the function
 
    // Set the program name we're running under and default verbose level
    prog = argv[0];
@@ -33,13 +34,14 @@ int main(int argc, char* argv[]) {
    static struct option longOpts[] = {
       {"port",    required_argument, NULL, 'p'},
       {"encrypt", no_argument,       NULL, 'e'},
+      {"no-fork", no_argument,       NULL, 'f'},
       {"verbose", no_argument,       NULL, 'v'},
       {"version", no_argument,       NULL, 'V'},
       {"help",    no_argument,       NULL, 'h'}
    };
 
    // Parse the command line args
-   while((c = getopt_long(argc, argv, "p:evVh", longOpts, &optIndex)) != -1) {
+   while((c = getopt_long(argc, argv, "p:efvVh", longOpts, &optIndex)) != -1) {
       switch(c) {
          // The port to start the server on
          case 'p':
@@ -48,6 +50,9 @@ int main(int argc, char* argv[]) {
          // Use encryption
          case 'e':
             useEnc = 1;
+            break;
+         case 'f':
+            noFork = 1;
             break;
          // Set verbose level
          case 'v':
@@ -82,11 +87,13 @@ int main(int argc, char* argv[]) {
    printf("%s: Server started on port %d\n", prog, server.getPort());
 
    // This is a server. Fork and return control to whatever started us
-   if((pid = fork()) == -1) {
-      fprintf(stderr, "%s: Failed to fork on startup\n", prog);
-      return ABNORMAL_EXIT;
-   } else if(pid != 0) {
-      return NORMAL_EXIT;
+   if(!noFork) {
+      if((pid = fork()) == -1) {
+         fprintf(stderr, "%s: Failed to fork on startup\n", prog);
+         return ABNORMAL_EXIT;
+      } else if(pid != 0) {
+         return NORMAL_EXIT;
+      }
    }
 
    // Wait for connections
@@ -189,8 +196,13 @@ int clientHandshake() {
       return FAILURE;
    }
 
-   // If the client requested encryption, exchange keys
+   // If the client requested encryption, init crypto object in the client object and exchange keys
    if(clientEnc) {
+      if(verbose >= DBL_VERBOSE) {
+         printf("%s: Initializing crypto for client %d\n", prog, client.getID());
+      }
+      client.initCrypto();
+
       if(verbose >= VERBOSE) {
          printf("%s: Client %d requested encryption. Exchanging keys...\n", prog, client.getID());
       }
@@ -282,6 +294,11 @@ int processCommand() {
 
       // TODO: create and call mediakeys function
 
+      if(verbose >= DBL_VERBOSE) {
+         printf("%s: Client %d: Play command successful\n", prog, client.getID());
+      }
+
+
       // Send ok
       if(client.send("ok\n", useEnc) == FAILURE) {
          if(verbose >= VERBOSE) {
@@ -298,6 +315,10 @@ int processCommand() {
       }
 
       // TODO: create and call mediakeys function
+
+      if(verbose >= DBL_VERBOSE) {
+         printf("%s: Client %d: Next command successful\n", prog, client.getID());
+      }
 
       // Send ok
       if(client.send("ok\n", useEnc) == FAILURE) {
@@ -316,6 +337,10 @@ int processCommand() {
 
       // TODO: create and call mediakeys function
 
+      if(verbose >= DBL_VERBOSE) {
+         printf("%s: Client %d: Prev command successful\n", prog, client.getID());
+      }
+
       // Send ok
       if(client.send("ok\n", useEnc) == FAILURE) {
          if(verbose >= VERBOSE) {
@@ -332,6 +357,9 @@ int processCommand() {
       }
 
       // Send ok
+      if(verbose >= DBL_VERBOSE) {
+         printf("%s: Client %d: Sending volume command ok confirmation to client\n", prog, client.getID());
+      }
       if(client.send("ok\n", useEnc) == FAILURE) {
          if(verbose >= VERBOSE) {
             fprintf(stderr, "%s: Error sending volume command confirmation to client %d\n", prog, client.getID());
@@ -354,12 +382,12 @@ int processCommand() {
       // Change the volume
       if(parseVolCommand(reply) == SUCCESS) {
          if(verbose >= VERBOSE) {
-            printf("%s: client %d: volume change successful\n", prog, client.getID());
+            printf("%s: client %d: volume command successful\n", prog, client.getID());
          }
          send = "ok\n";
       } else {
          if(verbose >= VERBOSE) {
-            fprintf(stderr, "%s: client %d: volume change unsuccessful\n", prog, client.getID());
+            fprintf(stderr, "%s: client %d: volume command unsuccessful\n", prog, client.getID());
          }
          send = "err\n";
       }
@@ -367,7 +395,7 @@ int processCommand() {
       // Send the response
       if(client.send(send, useEnc) == FAILURE) {
          if(verbose >= VERBOSE) {
-            fprintf(stderr, "%s: Error command reply to client %d\n", prog, client.getID());
+            fprintf(stderr, "%s: Error sending command reply to client %d\n", prog, client.getID());
          }
          return FAILURE;
       } else {
@@ -380,6 +408,13 @@ int processCommand() {
    // Unknown command
    } else {
       fprintf(stderr, "%s: client %d sent unknown command\n", prog, client.getID());
+
+      // Send an error to the client
+      if(client.send("err\n", useEnc) == FAILURE) {
+         if(verbose >= VERBOSE) {
+            fprintf(stderr, "%s: Error sending command error to client %d\n", prog, client.getID());
+         }
+      }
       return FAILURE;
    }
 }
@@ -477,6 +512,8 @@ int changeVolume(const string channel, const int leftVolume, const int rightVolu
 void printUsage() {
    printf("%s: Usage: %s [options]\n\
           --port\t(-p) [port]\tSpecify port number\n\
+          --encrypt\t(-e)\t\tEncrypt communications\n\
+          --no-fork\t(-f)\t\tDon't fork process\n\
           --verbose\t(-v)\t\tIncrease verbosity up to three levels\n\
           --version\t(-V)\t\tPrint version\n\
           --help\t(-h)\t\tDisplay this message\n", prog, prog);
