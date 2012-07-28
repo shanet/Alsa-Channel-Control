@@ -26,11 +26,13 @@ using namespace std;
 class Client {
 	
 public:
-   Client(string host, int port, int useEnc=0);
+   Client(string host, int port);
 
    Client();
 
    ~Client();
+
+   int initCrypto();
 
    int connectToServer(int aiFamily=AF_UNSPEC);
    

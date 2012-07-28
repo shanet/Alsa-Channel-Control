@@ -30,16 +30,27 @@ Client::~Client() {
 }
 
 
+int Client::initCrypto() {
+   if(crypto != NULL) {
+      return FAILURE;
+   }
+
+   crypto = new Crypto(1);
+   return SUCCESS;
+}
+
+
 int Client::send(string data, int useEnc) {
    unsigned char *msg = NULL;
    size_t msgLen;
    int sendStatus;
 
-   // If using encryption, encrypt the data to send first with the specified encryption type
+   // Attempt data encryption if requested
    if(useEnc && crypto != NULL) {
       if((msgLen = crypto->aesEncrypt(data, &msg)) == FAILURE) {
          return FAILURE;
       }
+   // Otherwise, just send the data as a c-string
    } else {
       msg = (unsigned char*) data.c_str();
       msgLen = data.length();
@@ -88,16 +99,6 @@ void Client::close() {
 }
 
 
-int Client::initCrypto() {
-   if(crypto != NULL) {
-      return FAILURE;
-   }
-
-   crypto = new Crypto();
-   return SUCCESS;
-}
-
-
 string Client::getIPAddress() {
    // Make the IP long enough for IPv6 addresses, even though we currently only support IPv4
    char ip[INET6_ADDRSTRLEN];
@@ -127,8 +128,6 @@ int Client::sendLocalPubKey() {
    unsigned char *pubKey;
 
    int pubKeyLen = crypto->getLocalPubKey(&pubKey);
-
-   printf("Sending pubkey: %s\n", (char*)pubKey);
 
    int sendStatus = ::send(socket, pubKey, pubKeyLen, 0);
 
@@ -163,17 +162,41 @@ int Client::sendAESKey() {
    int sendStatus;
 
    // Get the AES key
-   aesKeyLen = crypto->getLocalAESKey(&aesKey);
+   aesKeyLen = crypto->getAESKey(&aesKey);
+
+   /*fprintf(stderr, "AES key: %d\n", aesKeyLen);
+   for(int i=0; i<aesKeyLen; i++) {
+      fprintf(stderr, "%d: %x|\n", i, *(aesKey+i));
+   }*/
+
+   unsigned char *remotePubKey;
+   crypto->getRemotePubKey(&remotePubKey);
+   fprintf(stderr, "REMOTE PUB KEY: %s\n", (char*)remotePubKey);
+
+   aesKey = (unsigned char*)"test";
+   aesKeyLen = strlen((const char*)aesKey);
 
    // Encrypt the AES with RSA
    encAesKeyLen = crypto->rsaEncrypt(aesKey, aesKeyLen, &encAesKey);
+
+
+   fprintf(stderr, "\n\nenc AES key: %d\n", (int)encAesKeyLen);
+   for(int i=0; i<(int)encAesKeyLen; i++) {
+      fprintf(stderr, "%d: %x|\n", i, *(encAesKey+i));
+   }
+
+   if((aesKeyLen = crypto->rsaDecrypt(encAesKey, encAesKeyLen, &aesKey)) == FAILURE) {
+      fprintf(stderr, "DECRY FAILED\n");
+      return FAILURE;
+   }
+   fprintf(stderr, "DECRY: %s\n", aesKey);
 
    // Send the encrypted AES key to remote
    sendStatus = ::send(socket, encAesKey, encAesKeyLen, 0);
 
    // Encrypted messages are dynamically allocated in the encrypt function so they need free'd
-   free(encAesKey);
-   encAesKey = NULL;
+   //free(encAesKey);
+   //encAesKey = NULL;
 
    return sendStatus;
 }

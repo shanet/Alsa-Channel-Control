@@ -232,6 +232,12 @@ int serverHandshake() {
 
    // If using encryption, exchange keys
    if(useEnc) {
+      // Init the crypto functions in the client object
+      if(verbose >= DBL_VERBOSE) {
+         printf("%s: Initializing encryption functions\n", prog);
+      }
+      client.initCrypto();
+
       // Get the server's pub key
       if(verbose >= DBL_VERBOSE) {
          printf("%s: Receiving server's public key\n", prog);

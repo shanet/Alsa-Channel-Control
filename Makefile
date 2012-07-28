@@ -26,32 +26,27 @@ SERVER_OBJECTS=$(SERVER_SOURCES:.$(LANG)=.o)
 CLIENT_OBJECTS=$(CLIENT_SOURCES:.$(LANG)=.o)
 CRYPTO_OBJECTS=$(CRYPTO_SOURCES:.$(LANG)=.o)
 
-INCLUDE_PATHS=-Isrc/include/ -Isrc/crypto
+CFLAGS=-Isrc/include/ -Isrc/crypto -Wall -Wextra
 
-CFLAGS_COMMON=$(INCLUDE_PATHS) -Wall -Wextra 
-CFLAGS=-O2
-CFLAGS_DEBUG=-ggdb
+DEBUG ?= 1
+ifeq ($(DEBUG), 1)
+	CFLAGS += -ggdb
+else
+	CFLAGS += -O2
+endif
 
 LIBRARIES=-lcrypto
 
 .PHONY: server server_debug client client_debug
 
+
 all: server client android
 
-debug: server_debug client_debug
+server: $(SERVER_OBJECTS) $(CRYPTO_OBJECTS)
+	$(CC) -o bin/$(SERVER_BINARY) $^ $(LIBRARIES)
 
-server: $(SERVER_SOURCES) $(CRYPTO_SOURCES)
-	$(CC) $(CFLAGS_COMMON) $(CFLAGS) -o bin/$(SERVER_BINARY) $(SERVER_OBJECTS) $(CRYPTO_OBJECTS) $(LIBRARIES)
-
-server_debug: $(SERVER_SOURCES) $(CRYPTO_SOURCES)
-	$(CC) $(CFLAGS_COMMON) $(CFLAGS_DEBUG) -o bin/$(SERVER_BINARY) $(SERVER_OBJECTS) $(CRYPTO_OBJECTS) $(LIBRARIES)
-
-client: $(CLIENT_SOURCES) $(CRYPTO_SOURCES)
-	$(CC) $(CFLAGS_COMMON) $(CFLAGS) -o bin/$(CLIENT_BINARY) $(CLIENT_OBJECTS) $(CRYPTO_OBJECTS) $(LIBRARIES)
-
-client_debug: $(CLIENT_SOURCES) $(CRYPTO_SOURCES)
-	$(CC) $(CFLAGS_COMMON) $(CFLAGS_DEBUG) -o bin/$(CLIENT_BINARY) $(CLIENT_OBJECTS) $(CRYPTO_OBJECTS) $(LIBRARIES)
-
+client: $(CLIENT_OBJECTS) $(CRYPTO_OBJECTS)
+	$(CC) -o bin/$(CLIENT_BINARY) $^ $(LIBRARIES)
 
 android:
 	ant -f src/android_client/build.xml debug
@@ -95,8 +90,8 @@ bin_tar: all
 	
 	rm -rf $(PROJ_NAME)
 
-#.$(LANG).o:
-#	$(CC) $(CFLAGS_COMMON) -c $< -o $@
+.$(LANG).o:
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -f $(SERVER_OBJECTS)

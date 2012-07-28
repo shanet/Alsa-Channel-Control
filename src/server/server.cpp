@@ -128,7 +128,10 @@ int main(int argc, char* argv[]) {
             } while(commandResult != END);
 
          } catch (int e) {
-            // If there was a failure in the command, send the end command to the client
+            // If there was a failure in the handshake or the command, send the end command to the client
+            if(verbose >= DBL_VERBOSE) {
+               fprintf(stderr, "%s: Client %d: Sending end command due to error\n", prog, client.getID());
+            }
             if(client.send("end\n", useEnc) == FAILURE && verbose >= VERBOSE) {
                fprintf(stderr, "%s: Error sending end command to client %d\n", prog, client.getID());
             }
@@ -199,25 +202,35 @@ int clientHandshake() {
    // If the client requested encryption, init crypto object in the client object and exchange keys
    if(clientEnc) {
       if(verbose >= DBL_VERBOSE) {
-         printf("%s: Initializing crypto for client %d\n", prog, client.getID());
+         printf("%s: Initializing encryption functions for client %d\n", prog, client.getID());
       }
       client.initCrypto();
 
       if(verbose >= VERBOSE) {
          printf("%s: Client %d requested encryption. Exchanging keys...\n", prog, client.getID());
       }
+
       // Send our public key
+      if(verbose >= DBL_VERBOSE) {
+         printf("%s: Client %d: Sending local public key\n", prog, client.getID());
+      }
       if(client.sendLocalPubKey() == FAILURE) {
          fprintf(stderr, "%s: Failed to send local public key to client %d\n", prog, client.getID());
          return FAILURE;
       }
 
       // Get the client's public key
+      if(verbose >= DBL_VERBOSE) {
+         printf("%s: Client %d: Receiving remote public key\n", prog, client.getID());
+      }
       if(client.receiveRemotePubKey() == FAILURE) {
          return FAILURE;
       }
 
       // Send the AES key to the client (the sendAESKey() function takes care of encrypting it first)
+      if(verbose >= DBL_VERBOSE) {
+         printf("%s: Client %d: Sending AES key\n", prog, client.getID());
+      }
       if(client.sendAESKey() == FAILURE) {
          fprintf(stderr, "%s: Failed to send AES key to client %d\n", prog, client.getID());
          return FAILURE;
@@ -233,7 +246,7 @@ int clientHandshake() {
          fprintf(stderr, "%s: Client %d unexpectedly closed connection\n", prog, client.getID());
          return FAILURE;
       } else if(reply.compare("redy\n") != 0) {
-         fprintf(stderr, "%s: Client %d failed encryption handshake\n", prog, client.getID());
+         fprintf(stderr, "%s: Client %d: Failed encryption handshake\n", prog, client.getID());
          return FAILURE;
       }
    }

@@ -30,13 +30,13 @@ public:
 
    ~Client();
 
+   int initCrypto();
+
    int send(string data, int useEnc=0);
 
    int receive(string *reply, int useEnc=0);
 
    void close();
-
-   int initCrypto();
 
    string getIPAddress();
 

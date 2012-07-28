@@ -22,7 +22,7 @@ Server::Server(int port, int useCrypto, int backlog) {
    // Init some other class members
    serverInfo = NULL;
    numClients = 0;
-   mIsStarted  = 0;
+   mIsStarted = 0;
 }
 
 Server::Server() {

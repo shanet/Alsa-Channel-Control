@@ -41,11 +41,11 @@
 
 class Crypto {
 public:
-    Crypto();
+    Crypto(int isClient=0);
 
-    Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen);
+    Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen, int isClient=0);
 
-    Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen, size_t rsaKeyLen, size_t aesKeyLen);
+    Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen, size_t rsaKeyLen, size_t aesKeyLen, int isClient=0);
 
     ~Crypto();
 
@@ -59,7 +59,7 @@ public:
 
     std::string rsaDecrypt(unsigned char *encMsg, size_t encMsgLen);
 
-    int rsaDecrypt(unsigned char *encMsg, size_t encMsgLen, char **decMsg);
+    int rsaDecrypt(unsigned char *encMsg, size_t encMsgLen, unsigned char **decMsg);
 
     std::string aesDecrypt(unsigned char *encMsg, size_t encMsgLen);
 
@@ -67,22 +67,28 @@ public:
 
     int writeKeyToFile(FILE *fd, int key);
 
-    int setRemotePubKey(unsigned char* pubKey, size_t pubKeyLen);
+    int getRemotePubKey(unsigned char **pubKey);
+
+    int setRemotePubKey(unsigned char *pubKey, size_t pubKeyLen);
 
     int getLocalPubKey(unsigned char **pubKey);
 
     int getLocalPriKey(unsigned char **priKey);
 
-    int getLocalAESKey(unsigned char **aesKey);
+    int getAESKey(unsigned char **aesKey);
+
+    int setAESKey(unsigned char *aesKey, size_t aesKeyLen);
 
 private:
     static EVP_PKEY *localKeypair;
     EVP_PKEY *remotePubKey;
 
-    EVP_CIPHER_CTX *rsaEncryptCtx;
+    EVP_CIPHER_CTX *rsaClientEncryptCtx;
+    EVP_MD_CTX     *rsaServerEncryptCtx;
     EVP_CIPHER_CTX *aesEncryptCtx;
 
-    EVP_CIPHER_CTX *rsaDecryptCtx;
+    EVP_CIPHER_CTX *rsaServerDecryptCtx;
+    EVP_MD_CTX     *rsaClientDecryptCtx;
     EVP_CIPHER_CTX *aesDecryptCtx;
 
     unsigned char *rsaSymKey;
@@ -94,6 +100,8 @@ private:
     int aesKeyLen;
 
     size_t encryptLen;
+
+    int mIsClient;
 
     int init(size_t rsaKeyLen, size_t aesKeyLen);
     int genTestClientKey(int keyLen);

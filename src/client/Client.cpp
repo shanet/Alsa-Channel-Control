@@ -6,22 +6,15 @@
 #include "Client.h"
 #include <iostream>
 
-Client::Client(string host, int port, int useEnc) {
+Client::Client(string host, int port) {
    this->host = host;
 
    // Let setPort do validation on the port range
    setPort(port);
 
-   // If using encryption, init the crypto object
-   // otherwise just set it to null
-   if(useEnc) {
-      crypto = new Crypto();
-   } else {
-      crypto = NULL;
-   }
-
    // Init other member variables
    serverInfo = NULL;
+   crypto = NULL;
    mIsConnected = 0;
 }
 
@@ -43,6 +36,16 @@ Client::~Client() {
       delete crypto;
       crypto = NULL;
    }
+}
+
+
+int Client::initCrypto() {
+   if(crypto != NULL) {
+      return FAILURE;
+   }
+
+   crypto = new Crypto();
+   return SUCCESS;
 }
 
 
@@ -120,42 +123,48 @@ void Client::closeConnection() {
 }
 
 
-int Client::send(string data, int encType) {
-   // If using encryption, encrypt the data to send first with the specified encryption type
+int Client::send(string data, int useEnc) {
    unsigned char *msg = NULL;
    size_t msgLen;
-   if((encType == ENC_RSA || encType == ENC_AES) && crypto != NULL) {
-      if(encType == ENC_RSA && (msgLen = crypto->rsaEncrypt(data, &msg)) == FAILURE) {
-         return FAILURE;
-      } else if((msgLen = crypto->aesEncrypt(data, &msg)) == FAILURE) {
+   int sendStatus;
+
+   // Attempt data encryption if requested
+   if(useEnc && crypto != NULL) {
+      if((msgLen = crypto->aesEncrypt(data, &msg)) == FAILURE) {
          return FAILURE;
       }
+   // Otherwise, just send the data as a c-string
    } else {
       msg = (unsigned char*) data.c_str();
       msgLen = data.length();
    }
 
-   return ::send(connSock, msg, msgLen, 0);
+   sendStatus = ::send(connSock, msg, msgLen, 0);
+
+   // Encrypted messages are dynaimcally allocated so it needs free'd
+   if(useEnc) {
+      free(msg);
+      msg = NULL;
+   }
+
+   return sendStatus;
 }
 
 
-int Client::receive(string *reply, int encType) {
+int Client::receive(string *reply, int useEnc) {
    unsigned char *tmpReply = (unsigned char*) malloc(BUFFER);
 
    int recvLen = recv(connSock, tmpReply, BUFFER, 0);
 
-   // Attempt decryption with the given encryption type if asked for
-   if((encType == ENC_RSA || encType == ENC_AES) && crypto != NULL) {
-      if(encType == ENC_AES) {
-         *reply = crypto->aesDecrypt(tmpReply, recvLen);
-      } else {
-         *reply = crypto->rsaDecrypt(tmpReply, recvLen);
-      }
+   // Attempt decryption if using 
+   if(useEnc && crypto != NULL) {
+      *reply = crypto->aesDecrypt(tmpReply, recvLen);
     
       // If the decryption resulted in an empty string, it failed
       if(reply->length() == 0) {
          return FAILURE;
       }
+   // No encryption. Just convert the c-string to a string object
    // Add null terminator only if recvLen is >= 0 to avoid going out of bounds
    } else if(recvLen >= 0) {
       tmpReply[recvLen] = '\0';
@@ -225,14 +234,8 @@ int Client::receiveRemotePubKey() {
       return END;
    }
 
-   fprintf(stderr, "%s\n", pubKey.c_str());
-   fprintf(stderr, "%d\n", strlen(pubKey.c_str()));
-   fprintf(stderr, "%d\n\n", pubKeyLen);
-
    // Set the public key in the crypto object
-   crypto->setRemotePubKey((unsigned char*)pubKey.c_str(), pubKeyLen);
-fprintf(stderr, "debug2\n");
-   return SUCCESS;
+   return crypto->setRemotePubKey((unsigned char*)pubKey.c_str(), pubKeyLen);
 }
 
 
@@ -244,7 +247,7 @@ int Client::sendAESKey() {
    int sendStatus;
 
    // Get the AES key
-   aesKeyLen = crypto->getLocalAESKey(&aesKey);
+   aesKeyLen = crypto->getAESKey(&aesKey);
 
    // Encrypt the AES with RSA
    encAesKeyLen = crypto->rsaEncrypt(aesKey, aesKeyLen, &encAesKey);
@@ -261,16 +264,40 @@ int Client::sendAESKey() {
 
 
 int Client::receiveAESKey() {
-   string aesKey;
-   int aesKeyLen = receive(&aesKey);
+   unsigned char *encAesKey = (unsigned char*) malloc(BUFFER);
+   unsigned char *aesKey;
+   int encAesKeyLen;
+   int aesKeyLen;
+   int setAesStatus;
+
+   encAesKeyLen = recv(connSock, encAesKey, BUFFER, 0);
 
    // Validate the reply
-   if(aesKeyLen == FAILURE) {
-      return FAILURE;
-   } else if(aesKeyLen == 0) {
+   if(encAesKeyLen == 0) {
       return END;
    }
 
+   fprintf(stderr, "\n\nenc AES key: %d\n", (int)encAesKeyLen);
+   for(int i=0; i<(int)encAesKeyLen; i++) {
+      fprintf(stderr, "%d: %x|\n", i, *(encAesKey+i));
+   }
+
+   // Decrypt the AES key
+   if(crypto == NULL) return FAILURE;
+
+   if((aesKeyLen = crypto->rsaDecrypt(encAesKey, encAesKeyLen, &aesKey)) == FAILURE) {
+      fprintf(stderr, "DECRY FAILED\n");
+      return FAILURE;
+   }
+
+   fprintf(stderr, "AES KEY: %s\n", aesKey);
+
    // Set the public key in the crypto object
-   return crypto->setRemotePubKey((unsigned char*)aesKey.c_str(), aesKeyLen);
+   setAesStatus = crypto->setAESKey(aesKey, aesKeyLen);
+
+   free(encAesKey);
+   free(aesKey);
+   encAesKey = aesKey = NULL;
+
+   return setAesStatus;
 }
