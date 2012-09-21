@@ -16,6 +16,7 @@ int main(int argc, char* argv[]) {
    prog = argv[0];
    useEnc = 0;
    verbose = NO_VERBOSE;
+   display = NULL;
 
    // Handle SIGINT's, SIGTERM's, and SIGCHLD's
    struct sigaction sa;
@@ -160,6 +161,11 @@ int main(int argc, char* argv[]) {
    printf("%s: Server stopping...", prog);
    server.stop();
 
+   // Disconnect from X
+   if(display != NULL) {
+      XCloseDisplay(display);
+   }
+
    return NORMAL_EXIT;
 }
 
@@ -202,7 +208,7 @@ int clientHandshake() {
    // If the client requested encryption, init crypto object in the client object and exchange keys
    if(clientEnc) {
       if(verbose >= DBL_VERBOSE) {
-         printf("%s: Initializing encryption functions for client %d\n", prog, client.getID());
+         printf("%s: Client %d: Initializing encryption functions\n", prog, client.getID());
       }
       client.initCrypto();
 
@@ -215,15 +221,20 @@ int clientHandshake() {
          printf("%s: Client %d: Sending local public key\n", prog, client.getID());
       }
       if(client.sendLocalPubKey() == FAILURE) {
-         fprintf(stderr, "%s: Failed to send local public key to client %d\n", prog, client.getID());
+         fprintf(stderr, "%s: Client %d: Failed to send local public key\n", prog, client.getID());
          return FAILURE;
       }
 
-      // Get the client's public key
+      // Get the client's public key or error of receipt of the server's public key
       if(verbose >= DBL_VERBOSE) {
          printf("%s: Client %d: Receiving remote public key\n", prog, client.getID());
       }
       if(client.receiveRemotePubKey() == FAILURE) {
+         if(verbose >= VERBOSE) {
+            fprintf(stderr, "%s: Client %d: Failed to receive remote public key\n", prog, client.getID());
+         }
+         // Let the client know of the failure
+         client.send("err\n");
          return FAILURE;
       }
 
@@ -240,10 +251,10 @@ int clientHandshake() {
       recvLen = client.receive(&reply, 0);
 
       if(recvLen == FAILURE) {
-         fprintf(stderr, "%s: Client %d failed to send public key\n", prog, client.getID());
+         fprintf(stderr, "%s: Client %d: Failed to complete encryption handshake\n", prog, client.getID());
          return FAILURE;
       } else if(recvLen == 0) {
-         fprintf(stderr, "%s: Client %d unexpectedly closed connection\n", prog, client.getID());
+         fprintf(stderr, "%s: Client %d: Unexpectedly closed connection\n", prog, client.getID());
          return FAILURE;
       } else if(reply.compare("redy\n") != 0) {
          fprintf(stderr, "%s: Client %d: Failed encryption handshake\n", prog, client.getID());
@@ -271,6 +282,7 @@ int processCommand() {
    string reply;
    string send;
    int recvLen;
+   int num_channels;
 
    // Get the command
    recvLen = client.receive(&reply, useEnc);
@@ -299,70 +311,143 @@ int processCommand() {
       client.send("bye\n", useEnc);
 
       return END;
+
    // Play command
    } else if(reply.compare("play\n") == 0) {
       if(verbose >= VERBOSE) {
          printf("%s: Client %d issued play command\n", prog, client.getID());
       }
 
-      // TODO: create and call mediakeys function
-
-      if(verbose >= DBL_VERBOSE) {
-         printf("%s: Client %d: Play command successful\n", prog, client.getID());
-      }
-
-
-      // Send ok
-      if(client.send("ok\n", useEnc) == FAILURE) {
-         if(verbose >= VERBOSE) {
-            fprintf(stderr, "%s: Error sending play command confirmation to client %d\n", prog, client.getID());
+      // Send the play command
+      if(sendMediaKey(XF86AudioPlay) != FAILURE) {
+         // Send ok
+         if(client.send("ok\n", useEnc) == FAILURE) {
+            if(verbose >= VERBOSE) {
+               fprintf(stderr, "%s: Error sending play command confirmation to client %d\n", prog, client.getID());
+            }
+            return FAILURE;
+         }
+         if(verbose >= DBL_VERBOSE) {
+            printf("%s: Client %d: Play command successful\n", prog, client.getID());
+         }
+      } else {
+         // Send err
+         if(client.send("err\n", useEnc) == FAILURE) {
+            if(verbose >= VERBOSE) {
+               fprintf(stderr, "%s: Error sending play command error to client %d\n", prog, client.getID());
+            }
+            return FAILURE;
+         }
+         if(verbose >= DBL_VERBOSE) {
+            printf("%s: Client %d: Play command error\n", prog, client.getID());
          }
          return FAILURE;
       }
 
       return SUCCESS;
+
    // Next command
    } else if(reply.compare("next\n") == 0) {
       if(verbose >= VERBOSE) {
          printf("%s: Client %d issued next command\n", prog, client.getID());
       }
 
-      // TODO: create and call mediakeys function
-
-      if(verbose >= DBL_VERBOSE) {
-         printf("%s: Client %d: Next command successful\n", prog, client.getID());
-      }
-
-      // Send ok
-      if(client.send("ok\n", useEnc) == FAILURE) {
-         if(verbose >= VERBOSE) {
-            fprintf(stderr, "%s: Error sending next command confirmation to client %d\n", prog, client.getID());
+      // Send the next command
+      if(sendMediaKey(XF86AudioNext) != FAILURE) {
+         // Send ok
+         if(client.send("ok\n", useEnc) == FAILURE) {
+            if(verbose >= VERBOSE) {
+               fprintf(stderr, "%s: Error sending next command confirmation to client %d\n", prog, client.getID());
+            }
+            return FAILURE;
+         }
+         if(verbose >= DBL_VERBOSE) {
+            printf("%s: Client %d: Next command successful\n", prog, client.getID());
+         }
+      } else {
+         // Send err
+         if(client.send("err\n", useEnc) == FAILURE) {
+            if(verbose >= VERBOSE) {
+               fprintf(stderr, "%s: Error sending next command error to client %d\n", prog, client.getID());
+            }
+            return FAILURE;
+         }
+         if(verbose >= DBL_VERBOSE) {
+            printf("%s: Client %d: Next command error\n", prog, client.getID());
          }
          return FAILURE;
       }
 
       return SUCCESS;
+
    // Prev command
    } else if(reply.compare("prev\n") == 0) {
       if(verbose >= VERBOSE) {
          printf("%s: Client %d issued prev command\n", prog, client.getID());
       }
 
-      // TODO: create and call mediakeys function
-
-      if(verbose >= DBL_VERBOSE) {
-         printf("%s: Client %d: Prev command successful\n", prog, client.getID());
-      }
-
-      // Send ok
-      if(client.send("ok\n", useEnc) == FAILURE) {
-         if(verbose >= VERBOSE) {
-            fprintf(stderr, "%s: Error sending prev command confirmation to client %d\n", prog, client.getID());
+      // Send the prev command
+      if(sendMediaKey(XF86AudioPrev) != FAILURE) {
+         // Send ok
+         if(client.send("prev\n", useEnc) == FAILURE) {
+            if(verbose >= VERBOSE) {
+               fprintf(stderr, "%s: Error sending prev command confirmation to client %d\n", prog, client.getID());
+            }
+            return FAILURE;
+         }
+         if(verbose >= DBL_VERBOSE) {
+            printf("%s: Client %d: Prev command successful\n", prog, client.getID());
+         }
+      } else {
+         // Send err
+         if(client.send("err\n", useEnc) == FAILURE) {
+            if(verbose >= VERBOSE) {
+               fprintf(stderr, "%s: Error sending prev command error to client %d\n", prog, client.getID());
+            }
+            return FAILURE;
+         }
+         if(verbose >= DBL_VERBOSE) {
+            printf("%s: Client %d: Prev command error\n", prog, client.getID());
          }
          return FAILURE;
       }
 
       return SUCCESS;
+
+   // Stop command
+   } else if(reply.compare("prev\n") == 0) {
+      if(verbose >= VERBOSE) {
+         printf("%s: Client %d issued stop command\n", prog, client.getID());
+      }
+
+      // Send the stop command
+      if(sendMediaKey(XF86AudioStop) != FAILURE) {
+         // Send ok
+         if(client.send("stop\n", useEnc) == FAILURE) {
+            if(verbose >= VERBOSE) {
+               fprintf(stderr, "%s: Error sending stop command confirmation to client %d\n", prog, client.getID());
+            }
+            return FAILURE;
+         }
+         if(verbose >= DBL_VERBOSE) {
+            printf("%s: Client %d: Stop command successful\n", prog, client.getID());
+         }
+      } else {
+         // Send err
+         if(client.send("err\n", useEnc) == FAILURE) {
+            if(verbose >= VERBOSE) {
+               fprintf(stderr, "%s: Error sending stop command error to client %d\n", prog, client.getID());
+            }
+            return FAILURE;
+         }
+         if(verbose >= DBL_VERBOSE) {
+            printf("%s: Client %d: Stop command error\n", prog, client.getID());
+         }
+         return FAILURE;
+      }
+
+      return SUCCESS;
+
    // Volume command
    } else if(reply.compare("vol\n") == 0) {
       if(verbose >= VERBOSE) {
@@ -380,8 +465,9 @@ int processCommand() {
          return FAILURE;
       }
 
-      // Get volume command arg (channel and vol percent)
+      // Get number of channels being set
       recvLen = client.receive(&reply, useEnc);
+      num_channels = atoi(reply.c_str());
 
       // Validate the reply
       if(recvLen == FAILURE) {
@@ -392,32 +478,58 @@ int processCommand() {
          return FAILURE;
       }
 
-      // Change the volume
-      if(parseVolCommand(reply) == SUCCESS) {
-         if(verbose >= VERBOSE) {
-            printf("%s: client %d: volume command successful\n", prog, client.getID());
-         }
-         send = "ok\n";
-      } else {
-         if(verbose >= VERBOSE) {
-            fprintf(stderr, "%s: client %d: volume command unsuccessful\n", prog, client.getID());
-         }
-         send = "err\n";
+      // Send ok
+      if(verbose >= DBL_VERBOSE) {
+         printf("%s: Client %d: Sending volume command channel number ok confirmation to client\n", prog, client.getID());
       }
-
-      // Send the response
-      if(client.send(send, useEnc) == FAILURE) {
+      if(client.send("ok\n", useEnc) == FAILURE) {
          if(verbose >= VERBOSE) {
-            fprintf(stderr, "%s: Error sending command reply to client %d\n", prog, client.getID());
+            fprintf(stderr, "%s: Error sending volume command channel number confirmation to client %d\n", prog, client.getID());
          }
          return FAILURE;
-      } else {
-         if(verbose >= VERBOSE) {
-            printf("%s: Volume change confirmation sent to client %d\n", prog, client.getID());
+      }
+
+      for(int i=0; i<num_channels; i++) {
+         // Get volume command arg (channel and vol percent)
+         recvLen = client.receive(&reply, useEnc);
+
+         // Validate the reply
+         if(recvLen == FAILURE) {
+            fprintf(stderr, "%s: Error receiving command data from client %d\n", prog, client.getID());
+            return FAILURE;
+         } else if(recvLen == 0) {
+            fprintf(stderr, "%s: Client %d unexpectedly closed connection\n", prog, client.getID());
+            return FAILURE;
+         }
+
+         // Change the volume
+         if(parseVolCommand(reply) == SUCCESS) {
+            if(verbose >= VERBOSE) {
+               printf("%s: client %d: volume command successful\n", prog, client.getID());
+            }
+            send = "ok\n";
+         } else {
+            if(verbose >= VERBOSE) {
+               fprintf(stderr, "%s: client %d: volume command unsuccessful\n", prog, client.getID());
+            }
+            send = "err\n";
+         }
+
+         // Send the response
+         if(client.send(send, useEnc) == FAILURE) {
+            if(verbose >= VERBOSE) {
+               fprintf(stderr, "%s: Error sending command reply to client %d\n", prog, client.getID());
+            }
+            return FAILURE;
+         } else {
+            if(verbose >= VERBOSE) {
+               printf("%s: Volume change confirmation sent to client %d\n", prog, client.getID());
+            }
          }
       }
 
       return SUCCESS;
+
    // Unknown command
    } else {
       fprintf(stderr, "%s: client %d sent unknown command\n", prog, client.getID());
@@ -463,6 +575,11 @@ void sigHandler(const int signal) {
       // Kill the children
       for(list<int>::iterator iter = children.begin(); iter != children.end(); iter++) {
          kill(*iter, SIGTERM);
+      }
+
+      // Disconnect from X
+      if(display != NULL) {
+         XCloseDisplay(display);
       }
 
       // Stop the server and exit
@@ -522,11 +639,34 @@ int changeVolume(const string channel, const int leftVolume, const int rightVolu
 }
 
 
+int sendMediaKey(unsigned int key) {
+   // Connect to X if not done yet
+   if(display == NULL) {
+      display = XOpenDisplay(NULL);
+   }
+
+   if(display == NULL) return FAILURE;
+
+   // Get the keycode
+   unsigned int keycode = XKeysymToKeycode(display, key);
+
+   // Simulate the keypress
+   if(XTestFakeKeyEvent(display, keycode, 1, 0) == 0) return FAILURE;
+   // Release the key
+   if(XTestFakeKeyEvent(display, keycode, 0, 0) == 0) return FAILURE;
+
+   // Clear the X buffer which actually sends the key press
+   XFlush(display);
+
+   return SUCCESS;
+}
+
+
 void printUsage() {
    printf("%s: Usage: %s [options]\n\
           --port\t(-p) [port]\tSpecify port number\n\
           --encrypt\t(-e)\t\tEncrypt communications\n\
-          --no-fork\t(-f)\t\tDon't fork process\n\
+          --no-fork\t(-f)\t\tDon't fork process on startup\n\
           --verbose\t(-v)\t\tIncrease verbosity up to three levels\n\
           --version\t(-V)\t\tPrint version\n\
           --help\t(-h)\t\tDisplay this message\n", prog, prog);

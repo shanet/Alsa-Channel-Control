@@ -44,7 +44,7 @@ public:
 
    string getServerIPAddress() const;
 
-   int getConnSock() const;
+   int getSocket() const;
 
    int getPort() const;
 
@@ -59,14 +59,12 @@ public:
 
    int receiveRemotePubKey();
 
-   int sendAESKey();
-
    int receiveAESKey();
 
 private:
    string host;
    int port;
-   int connSock;
+   int socket;
    int mIsConnected;
    addrinfo *serverInfo;
    Crypto *crypto;

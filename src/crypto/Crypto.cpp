@@ -10,9 +10,7 @@ using namespace std;
 // Static member variables
 EVP_PKEY* Crypto::localKeypair;
 
-Crypto::Crypto(int isClient) {
-    mIsClient = isClient;
-
+Crypto::Crypto() {
     localKeypair  = NULL;
     remotePubKey  = NULL;
     rsaSymKey     = NULL;
@@ -28,9 +26,7 @@ Crypto::Crypto(int isClient) {
 }
 
 
-Crypto::Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen, int isClient) {
-    mIsClient = isClient;
-
+Crypto::Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen) {
     localKeypair  = NULL;
     remotePubKey  = NULL;
     rsaSymKey     = NULL;
@@ -47,9 +43,7 @@ Crypto::Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen, int isClient
 }
 
 
-Crypto::Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen, size_t rsaKeyLen, size_t aesKeyLen, int isClient) {
-    mIsClient = isClient;
-
+Crypto::Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen, size_t rsaKeyLen, size_t aesKeyLen) {
     localKeypair  = NULL;
     remotePubKey  = NULL;
     rsaSymKey     = NULL;
@@ -71,18 +65,16 @@ Crypto::~Crypto() {
     EVP_PKEY_free(localKeypair);
     EVP_PKEY_free(remotePubKey);
 
-    EVP_CIPHER_CTX_cleanup(rsaClientEncryptCtx);
-    EVP_MD_CTX_destroy(rsaServerEncryptCtx);
+    EVP_CIPHER_CTX_cleanup(rsaEncryptCtx);
     EVP_CIPHER_CTX_cleanup(aesEncryptCtx);
 
-    EVP_CIPHER_CTX_cleanup(rsaServerDecryptCtx);
-    EVP_MD_CTX_destroy(rsaClientDecryptCtx);
+    EVP_CIPHER_CTX_cleanup(rsaDecryptCtx);
     EVP_CIPHER_CTX_cleanup(aesDecryptCtx);
 
-    free(rsaClientEncryptCtx);
+    free(rsaEncryptCtx);
     free(aesEncryptCtx);
 
-    free(rsaClientDecryptCtx);
+    free(rsaDecryptCtx);
     free(aesDecryptCtx);
 
     free(rsaSymKey);
@@ -93,50 +85,30 @@ Crypto::~Crypto() {
 }
 
 
-int Crypto::rsaEncrypt(std::string msg, unsigned char **encMsg) {
-    return rsaEncrypt((unsigned char*)msg.c_str(), msg.size(), encMsg);
-}
-
-
-int Crypto::rsaEncrypt(const unsigned char *msg, size_t msgLen, unsigned char **encMsg) {
+int Crypto::rsaEncrypt(const unsigned char *msg, size_t msgLen, unsigned char **encMsg, unsigned char **ek, size_t *ekl, unsigned char **iv, size_t *ivl) {
     size_t encMsgLen = 0;
     size_t blockLen  = 0;
 
-    // If a client, seal with the server's public key
-    if(mIsClient) {
-        *encMsg = (unsigned char*)malloc(EVP_PKEY_size(remotePubKey));
-        if(encMsg == NULL) return FAILURE;
+    *ek = (unsigned char*)malloc(EVP_PKEY_size(remotePubKey));
+    *iv = (unsigned char*)malloc(EVP_MAX_IV_LENGTH);
+    *ivl = EVP_MAX_IV_LENGTH;
 
-        if(!EVP_SealInit(rsaClientEncryptCtx, EVP_aes_128_cbc(), &rsaSymKey, &rsaSymKeyLen, rsaIV, &remotePubKey, 1)) {
-            return FAILURE;
-        }
+    *encMsg = (unsigned char*)malloc(EVP_PKEY_size(remotePubKey));
+    if(encMsg == NULL) return FAILURE;
 
-        if(!EVP_SealUpdate(rsaClientEncryptCtx, *encMsg + encMsgLen, (int*)&blockLen, (const unsigned char*)msg, (int)msgLen)) {
-            return FAILURE;
-        }
-        encMsgLen += blockLen;
-
-        if(!EVP_SealFinal(rsaClientEncryptCtx, *encMsg + encMsgLen, (int*)&blockLen)) {
-            return FAILURE;
-        }
-        encMsgLen += blockLen;
-    // If a server, sign with the private key
-    } else {
-        *encMsg = (unsigned char*)malloc(EVP_PKEY_size(localKeypair));
-        if(encMsg == NULL) return FAILURE;
-
-        if(!EVP_SignInit(rsaServerEncryptCtx, EVP_sha1())) {
-            return FAILURE;
-        }
-
-        if(!EVP_SignUpdate(rsaServerEncryptCtx, msg, msgLen)) {
-            return FAILURE;
-        }
-
-        if(!EVP_SignFinal(rsaServerEncryptCtx, *encMsg, (unsigned int*)&encMsgLen, localKeypair)) {
-            return FAILURE;
-        }
+    if(!EVP_SealInit(rsaEncryptCtx, EVP_aes_128_cbc(), ek, (int*)ekl, *iv, &remotePubKey, 1)) {
+        return FAILURE;
     }
+
+    if(!EVP_SealUpdate(rsaEncryptCtx, *encMsg + encMsgLen, (int*)&blockLen, (const unsigned char*)msg, (int)msgLen)) {
+        return FAILURE;
+    }
+    encMsgLen += blockLen;
+
+    if(!EVP_SealFinal(rsaEncryptCtx, *encMsg + encMsgLen, (int*)&blockLen)) {
+        return FAILURE;
+    }
+    encMsgLen += blockLen;
 
     //EVP_CIPHER_CTX_cleanup(rsaEncryptCtx);
 
@@ -144,27 +116,34 @@ int Crypto::rsaEncrypt(const unsigned char *msg, size_t msgLen, unsigned char **
 }
 
 
-int Crypto::aesEncrypt(std::string msg, unsigned char **encMsg) {
-    return aesEncrypt((unsigned char*)msg.c_str(), msg.size(), encMsg);
-}
-
-
 int Crypto::aesEncrypt(const unsigned char *msg, size_t msgLen, unsigned char **encMsg) {
     size_t blockLen  = 0;
     size_t encMsgLen = 0;
+
     *encMsg = (unsigned char*)malloc(msgLen + AES_BLOCK_SIZE);
     if(encMsg == NULL) return FAILURE;
 
+    char *err = (char*)malloc(130);
+
     if(!EVP_EncryptInit_ex(aesEncryptCtx, EVP_aes_256_cbc(), NULL, aesKey, aesIV)) {
+        ERR_load_crypto_strings();
+        ERR_error_string(ERR_get_error(), err);
+        fprintf(stderr, "Error encrypting message1: %s\n", err);
         return FAILURE;
     }
 
     if(!EVP_EncryptUpdate(aesEncryptCtx, *encMsg, (int*)&blockLen, (unsigned char*)msg, msgLen)) {
+        ERR_load_crypto_strings();
+        ERR_error_string(ERR_get_error(), err);
+        fprintf(stderr, "Error encrypting message2: %s\n", err);
         return FAILURE;
     }
     encMsgLen += blockLen;
 
     if(!EVP_EncryptFinal_ex(aesEncryptCtx, *encMsg + encMsgLen, (int*)&blockLen)) {
+        ERR_load_crypto_strings();
+        ERR_error_string(ERR_get_error(), err);
+        fprintf(stderr, "Error encrypting message3: %s\n", err);
         return FAILURE;
     }
 
@@ -174,71 +153,50 @@ int Crypto::aesEncrypt(const unsigned char *msg, size_t msgLen, unsigned char **
 }
 
 
-std::string Crypto::rsaDecrypt(unsigned char *encMsg, size_t encMsgLen) {
-    unsigned char *decMsg = NULL;
-    int status = rsaDecrypt(encMsg, encMsgLen, &decMsg);
-    return (status != FAILURE) ? string((char*)decMsg) : "";
-}
-
-
-int Crypto::rsaDecrypt(unsigned char *encMsg, size_t encMsgLen, unsigned char **decMsg) {
+int Crypto::rsaDecrypt(unsigned char *encMsg, size_t encMsgLen, unsigned char *ek, size_t ekl, unsigned char *iv, size_t ivl, unsigned char **decMsg) {
     size_t decLen   = 0;
     size_t blockLen = 0;
     EVP_PKEY *key;
 
-    *decMsg = (unsigned char*)malloc(encMsgLen + EVP_MAX_IV_LENGTH);
+    *decMsg = (unsigned char*)malloc(encMsgLen + ivl);
     if(decMsg == NULL) return FAILURE;
 
-    #ifdef PSUEDO_CLIENT
+    /*#ifdef PSUEDO_CLIENT
         key = remotePubKey;
-    #else
+    #else*/
         key = localKeypair;
-    #endif
+    //#endif
 
-    // If client, decrypt with the server's public key
-    if(mIsClient) {
-        if(!EVP_VerifyInit(rsaClientDecryptCtx, EVP_sha1())) {
-            return FAILURE;
-        }
+    char *err = (char*)malloc(130);
 
-        if(!EVP_VerifyUpdate(rsaClientDecryptCtx, encMsg, encMsgLen)) {
-            return FAILURE;
-        }
-
-        if(!EVP_VerifyFinal(rsaClientDecryptCtx, *decMsg, encMsgLen + EVP_MAX_IV_LENGTH, remotePubKey)) {
-            return FAILURE;
-        }
-
-        //(*decMsg)[decLen] = '\0';
-    // If server, decrypt with the private key
-    } else {
-        if(!EVP_OpenInit(rsaServerDecryptCtx, EVP_aes_128_cbc(), rsaSymKey, rsaSymKeyLen, rsaIV, key)) {
-            return FAILURE;
-        }
-
-        if(!EVP_OpenUpdate(rsaServerDecryptCtx, (unsigned char*)*decMsg + decLen, (int*)&blockLen, encMsg, (int)encMsgLen)) {
-            return FAILURE;
-        }
-        decLen += blockLen;
-
-        if(!EVP_OpenFinal(rsaServerDecryptCtx, (unsigned char*)*decMsg + decLen, (int*)&blockLen)) {
-            return FAILURE;
-        }
-        decLen += blockLen;
-
-        (*decMsg)[decLen] = '\0';
+    if(!EVP_OpenInit(rsaDecryptCtx, EVP_aes_128_cbc(), ek, ekl, iv, key)) {
+        ERR_load_crypto_strings();
+        ERR_error_string(ERR_get_error(), err);
+        fprintf(stderr, "Error decrypting message1: %s\n", err);
+        return FAILURE;
     }
+
+    if(!EVP_OpenUpdate(rsaDecryptCtx, (unsigned char*)*decMsg + decLen, (int*)&blockLen, encMsg, (int)encMsgLen)) {
+        ERR_load_crypto_strings();
+        ERR_error_string(ERR_get_error(), err);
+        fprintf(stderr, "Error decrypting message2: %s\n", err);
+        return FAILURE;
+    }
+    decLen += blockLen;
+
+    if(!EVP_OpenFinal(rsaDecryptCtx, (unsigned char*)*decMsg + decLen, (int*)&blockLen)) {
+        ERR_load_crypto_strings();
+        ERR_error_string(ERR_get_error(), err);
+        fprintf(stderr, "Error decrypting message3: %s\n", err);
+        return FAILURE;
+    }
+    decLen += blockLen;
+
+    (*decMsg)[decLen] = '\0';
 
     //EVP_CIPHER_CTX_cleanup(rsaDecryptCtx);
 
     return (int)decLen;
-}
-
-
-std::string Crypto::aesDecrypt(unsigned char *encMsg, size_t encMsgLen) {
-    char **decMsg = NULL;
-    int status = aesDecrypt(encMsg, encMsgLen, decMsg);
-    return (status != FAILURE) ? string(*decMsg) : "";
 }
 
 
@@ -384,11 +342,10 @@ int Crypto::getAESKey(unsigned char **aesKey) {
 
 int Crypto::setAESKey(unsigned char *aesKey, size_t aesKeyLen) {
     // Ensure the new key isn't larger than the one currently being used
-    if(aesKeyLen > sizeof(this->aesKey)) {
+    if((int)aesKeyLen > this->aesKeyLen) {
         return FAILURE;
     }
 
-    free(aesKey);
     strncpy((char*)this->aesKey, (const char*)aesKey, aesKeyLen);
     this->aesKeyLen = aesKeyLen;
 
@@ -399,30 +356,23 @@ int Crypto::setAESKey(unsigned char *aesKey, size_t aesKeyLen) {
 
 int Crypto::init(size_t rsaKeyLen, size_t aesKeyLen) {
     // Initalize contexts
-    rsaClientEncryptCtx = (EVP_CIPHER_CTX*)malloc(sizeof(EVP_CIPHER_CTX));
-    aesEncryptCtx       = (EVP_CIPHER_CTX*)malloc(sizeof(EVP_CIPHER_CTX));
+    rsaEncryptCtx = (EVP_CIPHER_CTX*)malloc(sizeof(EVP_CIPHER_CTX));
+    aesEncryptCtx = (EVP_CIPHER_CTX*)malloc(sizeof(EVP_CIPHER_CTX));
 
-    rsaServerDecryptCtx = (EVP_CIPHER_CTX*)malloc(sizeof(EVP_CIPHER_CTX));
-    aesDecryptCtx       = (EVP_CIPHER_CTX*)malloc(sizeof(EVP_CIPHER_CTX));
+    rsaDecryptCtx = (EVP_CIPHER_CTX*)malloc(sizeof(EVP_CIPHER_CTX));
+    aesDecryptCtx = (EVP_CIPHER_CTX*)malloc(sizeof(EVP_CIPHER_CTX));
 
     // Always a good idea to check if malloc failed
-    if(rsaClientEncryptCtx == NULL || aesEncryptCtx == NULL || rsaServerDecryptCtx == NULL || aesDecryptCtx == NULL) {
+    if(rsaEncryptCtx == NULL || aesEncryptCtx == NULL || rsaDecryptCtx == NULL || aesDecryptCtx == NULL) {
         return FAILURE;
     }
 
     // Init these here to make valgrind happy
-    EVP_CIPHER_CTX_init(rsaClientEncryptCtx);
-    rsaServerEncryptCtx = EVP_MD_CTX_create();
+    EVP_CIPHER_CTX_init(rsaEncryptCtx);
     EVP_CIPHER_CTX_init(aesEncryptCtx);
 
-    EVP_CIPHER_CTX_init(rsaServerDecryptCtx);
-    rsaClientDecryptCtx = EVP_MD_CTX_create();
+    EVP_CIPHER_CTX_init(rsaDecryptCtx);
     EVP_CIPHER_CTX_init(aesDecryptCtx);
-
-    // Init everything else only if server
-    if(mIsClient) {
-        return SUCCESS;
-    }
 
     // Init RSA
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);
@@ -447,7 +397,7 @@ int Crypto::init(size_t rsaKeyLen, size_t aesKeyLen) {
     // Init AES
     aesKey = (unsigned char*)malloc(aesKeyLen/8 + EVP_MAX_IV_LENGTH);
     aesIV = (unsigned char*)malloc(aesKeyLen/8);
-    this->aesKeyLen = aesKeyLen;
+    this->aesKeyLen = aesKeyLen/8 + EVP_MAX_IV_LENGTH;
 
     if(rsaSymKey == NULL || rsaIV == NULL || aesKey == NULL || aesIV == NULL) {
         return FAILURE;

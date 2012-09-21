@@ -14,6 +14,7 @@
 
 #define DEBUG
 
+// Key lengths should be in bits
 #ifdef DEBUG
 #define DEFAULT_RSA_KEYLEN 1024
 #define DEFAULT_AES_KEYLEN 128
@@ -40,28 +41,22 @@
 #define CRYPTO_H
 
 class Crypto {
+
 public:
-    Crypto(int isClient=0);
+    Crypto();
 
-    Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen, int isClient=0);
+    Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen);
 
-    Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen, size_t rsaKeyLen, size_t aesKeyLen, int isClient=0);
+    Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen, size_t rsaKeyLen, size_t aesKeyLen);
 
     ~Crypto();
 
-    int rsaEncrypt(std::string msg, unsigned char **encMsg);
 
-    int rsaEncrypt(const unsigned char *msg, size_t msgLen, unsigned char **encMsg);
-
-    int aesEncrypt(std::string msg, unsigned char **encMsg);
+    int rsaEncrypt(const unsigned char *msg, size_t msgLen, unsigned char **encMsg, unsigned char **ek, size_t *ekl, unsigned char **iv, size_t *ivl);
 
     int aesEncrypt(const unsigned char *msg, size_t msgLen, unsigned char **encMsg);
 
-    std::string rsaDecrypt(unsigned char *encMsg, size_t encMsgLen);
-
-    int rsaDecrypt(unsigned char *encMsg, size_t encMsgLen, unsigned char **decMsg);
-
-    std::string aesDecrypt(unsigned char *encMsg, size_t encMsgLen);
+    int rsaDecrypt(unsigned char *encMsg, size_t encMsgLen, unsigned char *ek, size_t ekl, unsigned char *iv, size_t ivl, unsigned char **decMsg);
 
     int aesDecrypt(unsigned char *encMsg, size_t encMsgLen, char **decMsg);
 
@@ -83,12 +78,10 @@ private:
     static EVP_PKEY *localKeypair;
     EVP_PKEY *remotePubKey;
 
-    EVP_CIPHER_CTX *rsaClientEncryptCtx;
-    EVP_MD_CTX     *rsaServerEncryptCtx;
+    EVP_CIPHER_CTX *rsaEncryptCtx;
     EVP_CIPHER_CTX *aesEncryptCtx;
 
-    EVP_CIPHER_CTX *rsaServerDecryptCtx;
-    EVP_MD_CTX     *rsaClientDecryptCtx;
+    EVP_CIPHER_CTX *rsaDecryptCtx;
     EVP_CIPHER_CTX *aesDecryptCtx;
 
     unsigned char *rsaSymKey;
@@ -100,8 +93,6 @@ private:
     int aesKeyLen;
 
     size_t encryptLen;
-
-    int mIsClient;
 
     int init(size_t rsaKeyLen, size_t aesKeyLen);
     int genTestClientKey(int keyLen);

@@ -22,7 +22,7 @@ Client::Client(string host, int port) {
 Client::Client() {
    host         = "";
    port         = -1;
-   connSock     = -1;
+   socket     = -1;
    serverInfo   = NULL;
    crypto       = NULL;
    mIsConnected = 0;
@@ -92,14 +92,14 @@ int Client::connect() {
    // Traverse list of results and bind to first socket possible
    for(tmpServerInfo = serverInfo; tmpServerInfo != NULL; tmpServerInfo = tmpServerInfo->ai_next) {
       // Try to get socket
-      if((connSock = socket(tmpServerInfo->ai_family, tmpServerInfo->ai_socktype, tmpServerInfo->ai_protocol)) == FAILURE) {
+      if((socket = ::socket(tmpServerInfo->ai_family, tmpServerInfo->ai_socktype, tmpServerInfo->ai_protocol)) == FAILURE) {
          continue;
       }
 
       // Try to connect to server
-      if(::connect(connSock, tmpServerInfo->ai_addr, tmpServerInfo->ai_addrlen) == FAILURE) {
+      if(::connect(socket, tmpServerInfo->ai_addr, tmpServerInfo->ai_addrlen) == FAILURE) {
          // Close the opened socket
-         close(connSock);      
+         close(socket);      
          continue;
       }
 
@@ -109,7 +109,7 @@ int Client::connect() {
 
    // If tmpServerInfo is null, we failed to bind
    if(tmpServerInfo == NULL) {
-      connSock = FAILURE;
+      socket = FAILURE;
       return FAILURE;
    } else {
       return SUCCESS;
@@ -118,7 +118,7 @@ int Client::connect() {
 
 
 void Client::closeConnection() {
-   close(connSock);
+   close(socket);
    mIsConnected = 0;
 }
 
@@ -130,7 +130,7 @@ int Client::send(string data, int useEnc) {
 
    // Attempt data encryption if requested
    if(useEnc && crypto != NULL) {
-      if((msgLen = crypto->aesEncrypt(data, &msg)) == FAILURE) {
+      if((msgLen = crypto->aesEncrypt((const unsigned char*)data.c_str(), data.length(), &msg)) == FAILURE) {
          return FAILURE;
       }
    // Otherwise, just send the data as a c-string
@@ -139,7 +139,7 @@ int Client::send(string data, int useEnc) {
       msgLen = data.length();
    }
 
-   sendStatus = ::send(connSock, msg, msgLen, 0);
+   sendStatus = ::send(socket, msg, msgLen, 0);
 
    // Encrypted messages are dynaimcally allocated so it needs free'd
    if(useEnc) {
@@ -153,12 +153,14 @@ int Client::send(string data, int useEnc) {
 
 int Client::receive(string *reply, int useEnc) {
    unsigned char *tmpReply = (unsigned char*) malloc(BUFFER);
+   char *decReply;
 
-   int recvLen = recv(connSock, tmpReply, BUFFER, 0);
+   int recvLen = recv(socket, tmpReply, BUFFER, 0);
 
    // Attempt decryption if using 
    if(useEnc && crypto != NULL) {
-      *reply = crypto->aesDecrypt(tmpReply, recvLen);
+      crypto->aesDecrypt(tmpReply, recvLen, &decReply);
+      (*reply) = string(decReply);
     
       // If the decryption resulted in an empty string, it failed
       if(reply->length() == 0) {
@@ -188,8 +190,8 @@ string Client::getServerIPAddress() const {
 }
 
 
-int Client::getConnSock() const {
-   return connSock;
+int Client::getSocket() const {
+   return socket;
 }
 
 
@@ -219,7 +221,12 @@ int Client::sendLocalPubKey() {
 
    int pubKeyLen = crypto->getLocalPubKey(&pubKey);
 
-   return ::send(connSock, pubKey, pubKeyLen, 0);
+   int sendStatus = ::send(socket, pubKey, pubKeyLen, 0);
+
+   free(pubKey);
+   pubKey = NULL;
+
+   return sendStatus;
 }
 
 
@@ -232,6 +239,8 @@ int Client::receiveRemotePubKey() {
       return FAILURE;
    } else if(pubKeyLen == 0) {
       return END;
+   } else if(pubKey.compare("err\n") == 0) {
+      return FAILURE;
    }
 
    // Set the public key in the crypto object
@@ -239,58 +248,66 @@ int Client::receiveRemotePubKey() {
 }
 
 
-int Client::sendAESKey() {
-   unsigned char *aesKey;
-   unsigned char *encAesKey;
-   size_t aesKeyLen;
-   size_t encAesKeyLen;
-   int sendStatus;
-
-   // Get the AES key
-   aesKeyLen = crypto->getAESKey(&aesKey);
-
-   // Encrypt the AES with RSA
-   encAesKeyLen = crypto->rsaEncrypt(aesKey, aesKeyLen, &encAesKey);
-
-   // Send the encrypted AES key to remote
-   sendStatus = ::send(connSock, encAesKey, encAesKeyLen, 0);
-
-   // Encrypted messages are dynamically allocated in the encrypt function so they need free'd
-   free(encAesKey);
-   encAesKey = NULL;
-
-   return sendStatus;
-}
-
-
 int Client::receiveAESKey() {
    unsigned char *encAesKey = (unsigned char*) malloc(BUFFER);
-   unsigned char *aesKey;
+   unsigned char *aesKey = NULL;
+   unsigned char *ek = (unsigned char*) malloc(BUFFER);
+   unsigned char *iv = (unsigned char*) malloc(BUFFER);
+
+   int ekl;
+   int ivl;
    int encAesKeyLen;
    int aesKeyLen;
    int setAesStatus;
 
-   encAesKeyLen = recv(connSock, encAesKey, BUFFER, 0);
+   ivl = recv(socket, iv, BUFFER, 0);
+
+   // Validate the reply
+   if(ivl == 0) {
+      return END;
+   }
+
+   ekl = recv(socket, ek, BUFFER, 0);
+
+   // Validate the reply
+   if(ekl == 0) {
+      return END;
+   }
+
+   encAesKeyLen = recv(socket, encAesKey, BUFFER, 0);
 
    // Validate the reply
    if(encAesKeyLen == 0) {
       return END;
    }
 
+   /*fprintf(stderr, "\n\nivl: %d\n", (int)ivl);
+   for(int i=0; i<(int)ivl; i++) {
+      fprintf(stderr, "%d: %2d | %2x\n", i, *(iv+i), *(iv+i));
+   }
+
+   fprintf(stderr, "\n\nekl: %d\n", (int)ekl);
+   for(int i=0; i<(int)ekl; i++) {
+      fprintf(stderr, "%d: %2d | %2x\n", i, *(ek+i), *(ek+i));
+   }
+
    fprintf(stderr, "\n\nenc AES key: %d\n", (int)encAesKeyLen);
    for(int i=0; i<(int)encAesKeyLen; i++) {
-      fprintf(stderr, "%d: %x|\n", i, *(encAesKey+i));
-   }
+      fprintf(stderr, "%d: %2d | %2x\n", i, *(encAesKey+i), *(encAesKey+i));
+   }*/
 
    // Decrypt the AES key
    if(crypto == NULL) return FAILURE;
 
-   if((aesKeyLen = crypto->rsaDecrypt(encAesKey, encAesKeyLen, &aesKey)) == FAILURE) {
-      fprintf(stderr, "DECRY FAILED\n");
+   if((aesKeyLen = crypto->rsaDecrypt(encAesKey, encAesKeyLen, ek, ekl, iv, ivl, &aesKey)) == FAILURE) {
+      fprintf(stderr, "DECRYPT FAILED\n");
       return FAILURE;
    }
 
-   fprintf(stderr, "AES KEY: %s\n", aesKey);
+   /*fprintf(stderr, "\n\nAES KEY: %d\n", (int)aesKeyLen);
+   for(int i=0; i<(int)aesKeyLen; i++) {
+      fprintf(stderr, "%d: %2d | %2x\n", i, *(aesKey+i), *(aesKey+i));
+   }*/
 
    // Set the public key in the crypto object
    setAesStatus = crypto->setAESKey(aesKey, aesKeyLen);

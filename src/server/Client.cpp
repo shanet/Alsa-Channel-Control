@@ -35,7 +35,7 @@ int Client::initCrypto() {
       return FAILURE;
    }
 
-   crypto = new Crypto(1);
+   crypto = new Crypto();
    return SUCCESS;
 }
 
@@ -47,7 +47,7 @@ int Client::send(string data, int useEnc) {
 
    // Attempt data encryption if requested
    if(useEnc && crypto != NULL) {
-      if((msgLen = crypto->aesEncrypt(data, &msg)) == FAILURE) {
+      if((msgLen = crypto->aesEncrypt((const unsigned char*)data.c_str(), data.length(), &msg)) == FAILURE) {
          return FAILURE;
       }
    // Otherwise, just send the data as a c-string
@@ -69,13 +69,15 @@ int Client::send(string data, int useEnc) {
 
 
 int Client::receive(string *reply, int useEnc) {
-   unsigned char *tmpReply = (unsigned char*) malloc(BUFFER);
+   unsigned char *tmpReply = (unsigned char*)malloc(BUFFER);
+   char *decReply;
 
    int recvLen = recv(socket, tmpReply, BUFFER, 0);
 
    // Attempt decryption with the given encryption type if asked for
    if(useEnc && crypto != NULL) {
-      *reply = crypto->aesDecrypt(tmpReply, recvLen);
+      crypto->aesDecrypt(tmpReply, recvLen, &decReply);
+      (*reply) = string(decReply);
     
       // If the decryption resulted in an empty string, it failed
       if(reply->length() == 0) {
@@ -147,6 +149,8 @@ int Client::receiveRemotePubKey() {
       return FAILURE;
    } else if(pubKeyLen == 0) {
       return END;
+   } else if(pubKey.compare("err\n") == 0) {
+      return FAILURE;
    }
 
    // Set the public key in the crypto object
@@ -157,62 +161,50 @@ int Client::receiveRemotePubKey() {
 int Client::sendAESKey() {
    unsigned char *aesKey;
    unsigned char *encAesKey;
+   unsigned char *ek;
+   unsigned char *iv;
    size_t aesKeyLen;
    size_t encAesKeyLen;
+   size_t ekl;
+   size_t ivl;
    int sendStatus;
 
    // Get the AES key
    aesKeyLen = crypto->getAESKey(&aesKey);
 
-   /*fprintf(stderr, "AES key: %d\n", aesKeyLen);
-   for(int i=0; i<aesKeyLen; i++) {
-      fprintf(stderr, "%d: %x|\n", i, *(aesKey+i));
+   /*fprintf(stderr, "AES key: %d\n", (int)aesKeyLen);
+   for(int i=0; i<(int)aesKeyLen; i++) {
+      fprintf(stderr, "%d: %2d | %2x\n", i, *(aesKey+i), *(aesKey+i));
    }*/
 
-   unsigned char *remotePubKey;
-   crypto->getRemotePubKey(&remotePubKey);
-   fprintf(stderr, "REMOTE PUB KEY: %s\n", (char*)remotePubKey);
+   // Encrypt the AES key with RSA
+   encAesKeyLen = crypto->rsaEncrypt(aesKey, aesKeyLen, &encAesKey, &ek, &ekl, &iv, &ivl);
 
-   aesKey = (unsigned char*)"test";
-   aesKeyLen = strlen((const char*)aesKey);
+   /*fprintf(stderr, "\n\nivl: %d\n", (int)ivl);
+   for(int i=0; i<(int)ivl; i++) {
+      fprintf(stderr, "%d: %2d | %2x\n", i, *(iv+i), *(iv+i));
+   }
 
-   // Encrypt the AES with RSA
-   encAesKeyLen = crypto->rsaEncrypt(aesKey, aesKeyLen, &encAesKey);
-
-
+   fprintf(stderr, "\n\nekl: %d\n", (int)ekl);
+   for(int i=0; i<(int)ekl; i++) {
+      fprintf(stderr, "%d: %2d | %2x\n", i, *(ek+i), *(ek+i));
+   }
+   
    fprintf(stderr, "\n\nenc AES key: %d\n", (int)encAesKeyLen);
    for(int i=0; i<(int)encAesKeyLen; i++) {
-      fprintf(stderr, "%d: %x|\n", i, *(encAesKey+i));
-   }
+      fprintf(stderr, "%d: %2d | %2x\n", i, *(encAesKey+i), *(encAesKey+i));
+   }*/
 
-   if((aesKeyLen = crypto->rsaDecrypt(encAesKey, encAesKeyLen, &aesKey)) == FAILURE) {
-      fprintf(stderr, "DECRY FAILED\n");
-      return FAILURE;
-   }
-   fprintf(stderr, "DECRY: %s\n", aesKey);
-
-   // Send the encrypted AES key to remote
-   sendStatus = ::send(socket, encAesKey, encAesKeyLen, 0);
+   // Send the encrypted AES key to the client
+   sendStatus = ::send(socket, iv, (int)ivl, 0);
+   sleep(1);
+   sendStatus = ::send(socket, ek, (int)ekl, 0);
+   sleep(1);
+   sendStatus = ::send(socket, encAesKey, (int)encAesKeyLen, 0);
 
    // Encrypted messages are dynamically allocated in the encrypt function so they need free'd
    //free(encAesKey);
    //encAesKey = NULL;
 
    return sendStatus;
-}
-
-
-int Client::receiveAESKey() {
-   string aesKey;
-   int aesKeyLen = receive(&aesKey);
-
-   // Validate the reply
-   if(aesKeyLen == FAILURE) {
-      return FAILURE;
-   } else if(aesKeyLen == 0) {
-      return END;
-   }
-
-   // Set the public key in the crypto object
-   return crypto->setRemotePubKey((unsigned char*)aesKey.c_str(), aesKeyLen);
 }

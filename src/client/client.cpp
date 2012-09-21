@@ -136,15 +136,27 @@ int main(int argc, char *argv[]) {
       int cmdStatus;
       switch(cmd) {
          case CMD_VOL:
+            if(verbose >= DBL_VERBOSE) {
+               printf("%s: Sending 'volume' command to server\n", prog);
+            }
             cmdStatus = sendVolCmd(channels, vols);
             break;
          case CMD_PLAY:
+            if(verbose >= DBL_VERBOSE) {
+               printf("%s: Sending 'play' command to server\n", prog);
+            }
             cmdStatus = sendMediaCmd(CMD_PLAY);
             break;
          case CMD_NEXT:
+            if(verbose >= DBL_VERBOSE) {
+               printf("%s: Sending 'next' command to server\n", prog);
+            }
             cmdStatus = sendMediaCmd(CMD_NEXT);
             break;
          case CMD_PREV:
+            if(verbose >= DBL_VERBOSE) {
+               printf("%s: Sending 'previous' command to server\n", prog);
+            }
             cmdStatus = sendMediaCmd(CMD_PREV);
          default:
             break;
@@ -246,17 +258,17 @@ int serverHandshake() {
          if(verbose >= VERBOSE) {
             fprintf(stderr, "%s: Failed to receive server's public key\n", prog);
          }
+         // Let the server know of the failure
+         client.send("err\n");
          return FAILURE;
       }
 
       // Send our public key
       if(verbose >= DBL_VERBOSE) {
-         printf("%s: Sending local public key to server\n", prog);
+         printf("%s: Sending local public key\n", prog);
       }
       if(client.sendLocalPubKey() == FAILURE) {
-         if(verbose >= VERBOSE) {
-            fprintf(stderr, "%s: Failed to send local public key to server\n", prog);
-         }
+         fprintf(stderr, "%s: Failed to send local public key to server\n", prog);
          return FAILURE;
       }
 
@@ -278,23 +290,22 @@ int serverHandshake() {
          }
          return FAILURE;
       }
-   // Not using encryption
-   } else {
-      // Wait for the redy confirmation from the server
-      recvLen = client.receive(&reply, 0);
+   }
 
-      // Validate the reply
-      if(recvLen == FAILURE) {
-         fprintf(stderr, "%s: Server failed to give proper handshake\n", prog);
-         return FAILURE;
-      } else if(recvLen == 0) {
-         fprintf(stderr, "%s: Server unexpectedly closed connection\n", prog);
-         return FAILURE;
-      } else if(reply.compare("end\n") == 0) {
-         return END;
-      } else if(reply.compare("redy\n") != 0) {
-         return FAILURE;
-      }
+   // Wait for the redy confirmation from the server
+   recvLen = client.receive(&reply, useEnc);
+
+   // Validate the reply
+   if(recvLen == FAILURE) {
+      fprintf(stderr, "%s: Server failed to give proper handshake\n", prog);
+      return FAILURE;
+   } else if(recvLen == 0) {
+      fprintf(stderr, "%s: Server unexpectedly closed connection\n", prog);
+      return FAILURE;
+   } else if(reply.compare("end\n") == 0) {
+      return END;
+   } else if(reply.compare("redy\n") != 0) {
+      return FAILURE;
    }
 
    if(verbose >= VERBOSE) {
@@ -311,13 +322,50 @@ int sendVolCmd(vector<string> channels, vector<string> vols) {
    int recvLen;
 
    // Send the volume command to the server
-   if(client.send("vol\n") == FAILURE) {
+   if(client.send("vol\n", useEnc) == FAILURE) {
       fprintf(stderr, "%s: Error sending command to server\n", prog);
       return FAILURE;
    }
 
    // Wait for ok of command confirmation 
-   recvLen = client.receive(&reply);
+   recvLen = client.receive(&reply, useEnc);
+
+   if(recvLen == FAILURE) {
+      if(verbose >= DBL_VERBOSE) {
+         printf("%s: Communication error with server. Non-fatal.\n", prog);
+      }
+      return FAILURE;
+   // If no data was received, the server closed the connection
+   } else if(recvLen == 0) {
+      printf("%s: Server unexpectedly closed connection\n", prog);
+      return END;
+   // Check if there was something wrong with the command sent
+   } else if(reply.compare("err\n") == 0) {
+      fprintf(stderr, "%s: Error setting volume with command \"%s\"\n", prog, command.str().c_str());
+      return FAILURE;
+   // Check if server requested to end connection
+   } else if(reply.compare("end\n") == 0) {
+      if(verbose >= VERBOSE) {
+         printf("%s: Server requested to close connection\n", prog);
+      }
+      return END;
+   } else if(reply.compare("ok\n") != 0) {
+      if(verbose >= VERBOSE) {
+         printf("%s: Unknown response from server\n", prog);
+      }
+      return FAILURE;
+   }
+
+   // Send the number of channels being set to the server
+   char num_channels[BUFFER];
+   sprintf(num_channels, "%d\n", (int)channels.size());
+   if(client.send(num_channels, useEnc) == FAILURE) {
+      fprintf(stderr, "%s: Error sending command to server\n", prog);
+      return FAILURE;
+   }
+
+   // Wait for ok of command confirmation 
+   recvLen = client.receive(&reply, useEnc);
 
    if(recvLen == FAILURE) {
       if(verbose >= DBL_VERBOSE) {
@@ -356,7 +404,7 @@ int sendVolCmd(vector<string> channels, vector<string> vols) {
       }
 
       // Send the command to the server
-      if(client.send(command.str()) == FAILURE) {
+      if(client.send(command.str(), useEnc) == FAILURE) {
          fprintf(stderr, "%s: Error sending data to server\n", prog);
          return FAILURE;
       }
@@ -366,7 +414,7 @@ int sendVolCmd(vector<string> channels, vector<string> vols) {
       }
 
       // Get server reply
-      recvLen = client.receive(&reply);
+      recvLen = client.receive(&reply, useEnc);
 
       if(recvLen == FAILURE) {
          if(verbose >= DBL_VERBOSE) {
@@ -418,13 +466,13 @@ int sendMediaCmd(int commandType) {
    }
 
    // Send the command to the server
-   if(client.send(command) == FAILURE) {
+   if(client.send(command, useEnc) == FAILURE) {
       fprintf(stderr, "%s: Error sending command to server\n", prog);
       return FAILURE;
    }
 
    // Wait for ok of command confirmation 
-   recvLen = client.receive(&reply);
+   recvLen = client.receive(&reply, useEnc);
 
    if(recvLen == FAILURE) {
       if(verbose >= DBL_VERBOSE) {
@@ -446,8 +494,12 @@ int sendMediaCmd(int commandType) {
       }
       return END;
    } else if(reply.compare("ok\n") != 0) {
+      if(verbose >= DBL_VERBOSE) {
+         printf("%s: Confirmation of command from server\n", prog);
+      }
+   } else {
       if(verbose >= VERBOSE) {
-         printf("%s: Unknown response from server\n", prog);
+         fprintf(stderr, "%s: Unknown response from server\n", prog);
       }
       return FAILURE;
    }

@@ -53,8 +53,6 @@ public:
 
    int sendAESKey();
 
-   int receiveAESKey();
-
 private:
    int id;
    int socket;

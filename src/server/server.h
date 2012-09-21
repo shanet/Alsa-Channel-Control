@@ -13,6 +13,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include <X11/Xlib.h>
+#include <X11/extensions/XTest.h>
+
 #include "Server.h"
 #include "Constants.h"
 
@@ -34,6 +37,7 @@ int verbose;             // The verbose level
 Server server;           // The main server object
 Client client;           // Client connected to the server
 list<int> children;      // List of PIDs of all children created
+Display *display;        // Connection to X server
 
 
 int clientHandshake();
@@ -43,6 +47,8 @@ int processCommand();
 int parseVolCommand(const string commandArg);
 
 int changeVolume(const string channel, const int leftVolume, const int rightVolume);
+
+int sendMediaKey(unsigned int key);
 
 void sigHandler(const int signal);
 

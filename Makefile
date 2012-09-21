@@ -36,6 +36,7 @@ else
 endif
 
 LIBRARIES=-lcrypto
+SERVER_LIBRARIES=-lX11 -lXtst
 
 .PHONY: server server_debug client client_debug
 
@@ -43,7 +44,7 @@ LIBRARIES=-lcrypto
 all: server client android
 
 server: $(SERVER_OBJECTS) $(CRYPTO_OBJECTS)
-	$(CC) -o bin/$(SERVER_BINARY) $^ $(LIBRARIES)
+	$(CC) -o bin/$(SERVER_BINARY) $^ $(LIBRARIES) $(SERVER_LIBRARIES)
 
 client: $(CLIENT_OBJECTS) $(CRYPTO_OBJECTS)
 	$(CC) -o bin/$(CLIENT_BINARY) $^ $(LIBRARIES)
