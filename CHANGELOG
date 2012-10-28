@@ -1,3 +1,12 @@
+Version 4.0:
+   - Added RSA & AES encryption to server via OpenSSL
+   - Added media commands (play, pause, next, previous) to server
+   - Improved protocol reliability and error handling
+   - Android client updated to new protocol
+   - Android client supports media commands
+   - Android client keeps connections open as long as possible
+   - Future versions will support encrpytion in the Android client
+
 Version 3.2-beta:
    - Fixed Android app not closing connections properly
    - Various Android UI changes/fixes. See Changelog in app
