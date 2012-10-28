@@ -18,12 +18,13 @@
 
 BIN_PATH=/usr/sbin/
 BINARY=alsa-server
+ARGS=--encrypt
 
 export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
 
 start() {
         echo "Starting $BINARY..."
-        start-stop-daemon --start --exec $BIN_PATH$BINARY
+        start-stop-daemon --start --exec $BIN_PATH$BINARY -- $ARGS
 }
 
 stop() {

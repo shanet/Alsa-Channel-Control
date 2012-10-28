@@ -23,10 +23,10 @@
 using namespace std;
 
 
-int    verbose;   // Level of verbosity to use
-char   *prog;     // Name of the program
-int    useEnc;    // Encrypt communications with the server
-Client client;    // The client object that communicates with the server
+const char *prog;    // Name of the program
+int    verbose;      // Level of verbosity to use
+int    useEnc;       // Encrypt communications with the server
+Client client;       // The client object that communicates with the server
 
 int serverHandshake();
 

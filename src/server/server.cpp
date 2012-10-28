@@ -13,8 +13,8 @@ int main(int argc, char* argv[]) {
    int noFork = 0;            // To fork or not to fork, that is the function
 
    // Set the program name we're running under and default verbose level
-   prog = argv[0];
-   useEnc = 0;
+   prog    = (argc >= 1) ? argv[0] : "Unknown";
+   useEnc  = 0;
    verbose = NO_VERBOSE;
    display = NULL;
 
@@ -28,8 +28,12 @@ int main(int argc, char* argv[]) {
       sigaction(SIGCHLD, &sa, NULL) == -1)
    {
       fprintf(stderr, "%s: Failed to install signal handlers\n", prog);
-      return ABNORMAL_EXIT;
    }
+
+   // Set the DISPLAY env var display 0 if not already set
+   // This ensures that we can open a connection to the X server later assuming that
+   // the X server is running on display 0.
+   setenv("DISPLAY", ":0", 0);
 
    // Valid long options
    static struct option longOpts[] = {
@@ -133,7 +137,7 @@ int main(int argc, char* argv[]) {
             if(verbose >= DBL_VERBOSE) {
                fprintf(stderr, "%s: Client %d: Sending end command due to error\n", prog, client.getID());
             }
-            if(client.send("end\n", useEnc) == FAILURE && verbose >= VERBOSE) {
+            if(client.send("end\n", client.isEnc()) == FAILURE && verbose >= VERBOSE) {
                fprintf(stderr, "%s: Error sending end command to client %d\n", prog, client.getID());
             }
          }
@@ -187,7 +191,7 @@ int clientHandshake() {
    }
 
    // Reply to helo should be whether to use encryption or not
-   recvLen = client.receive(&reply, useEnc);
+   recvLen = client.receive(&reply);
 
    // Validate the reply
    if(recvLen == FAILURE) {
@@ -202,6 +206,13 @@ int clientHandshake() {
       clientEnc = 0;
    } else {
       fprintf(stderr, "%s: Client %d failed to give proper handshake\n", prog, client.getID());
+      return FAILURE;
+   }
+
+   // If the client requested encryption, but server wasn't started with encryption, send an error
+   if(!useEnc && clientEnc) {
+      fprintf(stderr, "%s: Client %d: Requested encryption, but the server was not started with encryption support.\n", prog, client.getID());
+      client.send("err\n");
       return FAILURE;
    }
 
@@ -248,7 +259,7 @@ int clientHandshake() {
       }
 
       // Get the redy from the client that it is good to go
-      recvLen = client.receive(&reply, 0);
+      recvLen = client.receive(&reply);
 
       if(recvLen == FAILURE) {
          fprintf(stderr, "%s: Client %d: Failed to complete encryption handshake\n", prog, client.getID());
@@ -263,7 +274,7 @@ int clientHandshake() {
    }
 
    // Send redy to tell the client the handshake is complete and we're ready to accept commands
-   if(client.send("redy\n", useEnc) == FAILURE) {
+   if(client.send("redy\n", client.isEnc()) == FAILURE) {
       if(verbose >= VERBOSE) {
          fprintf(stderr, "%s: Error sending data to client %d\n", prog, client.getID());
          return FAILURE;
@@ -308,7 +319,7 @@ int processCommand() {
       }
 
       // Send an end confirmation
-      client.send("bye\n", useEnc);
+      client.send("bye\n", client.isEnc());
 
       return END;
 
@@ -321,7 +332,7 @@ int processCommand() {
       // Send the play command
       if(sendMediaKey(XF86AudioPlay) != FAILURE) {
          // Send ok
-         if(client.send("ok\n", useEnc) == FAILURE) {
+         if(client.send("ok\n", client.isEnc()) == FAILURE) {
             if(verbose >= VERBOSE) {
                fprintf(stderr, "%s: Error sending play command confirmation to client %d\n", prog, client.getID());
             }
@@ -332,7 +343,7 @@ int processCommand() {
          }
       } else {
          // Send err
-         if(client.send("err\n", useEnc) == FAILURE) {
+         if(client.send("err\n", client.isEnc()) == FAILURE) {
             if(verbose >= VERBOSE) {
                fprintf(stderr, "%s: Error sending play command error to client %d\n", prog, client.getID());
             }
@@ -355,7 +366,7 @@ int processCommand() {
       // Send the next command
       if(sendMediaKey(XF86AudioNext) != FAILURE) {
          // Send ok
-         if(client.send("ok\n", useEnc) == FAILURE) {
+         if(client.send("ok\n", client.isEnc()) == FAILURE) {
             if(verbose >= VERBOSE) {
                fprintf(stderr, "%s: Error sending next command confirmation to client %d\n", prog, client.getID());
             }
@@ -366,7 +377,7 @@ int processCommand() {
          }
       } else {
          // Send err
-         if(client.send("err\n", useEnc) == FAILURE) {
+         if(client.send("err\n", client.isEnc()) == FAILURE) {
             if(verbose >= VERBOSE) {
                fprintf(stderr, "%s: Error sending next command error to client %d\n", prog, client.getID());
             }
@@ -389,7 +400,7 @@ int processCommand() {
       // Send the prev command
       if(sendMediaKey(XF86AudioPrev) != FAILURE) {
          // Send ok
-         if(client.send("prev\n", useEnc) == FAILURE) {
+         if(client.send("prev\n", client.isEnc()) == FAILURE) {
             if(verbose >= VERBOSE) {
                fprintf(stderr, "%s: Error sending prev command confirmation to client %d\n", prog, client.getID());
             }
@@ -400,7 +411,7 @@ int processCommand() {
          }
       } else {
          // Send err
-         if(client.send("err\n", useEnc) == FAILURE) {
+         if(client.send("err\n", client.isEnc()) == FAILURE) {
             if(verbose >= VERBOSE) {
                fprintf(stderr, "%s: Error sending prev command error to client %d\n", prog, client.getID());
             }
@@ -423,7 +434,7 @@ int processCommand() {
       // Send the stop command
       if(sendMediaKey(XF86AudioStop) != FAILURE) {
          // Send ok
-         if(client.send("stop\n", useEnc) == FAILURE) {
+         if(client.send("stop\n", client.isEnc()) == FAILURE) {
             if(verbose >= VERBOSE) {
                fprintf(stderr, "%s: Error sending stop command confirmation to client %d\n", prog, client.getID());
             }
@@ -434,7 +445,7 @@ int processCommand() {
          }
       } else {
          // Send err
-         if(client.send("err\n", useEnc) == FAILURE) {
+         if(client.send("err\n", client.isEnc()) == FAILURE) {
             if(verbose >= VERBOSE) {
                fprintf(stderr, "%s: Error sending stop command error to client %d\n", prog, client.getID());
             }
@@ -458,7 +469,7 @@ int processCommand() {
       if(verbose >= DBL_VERBOSE) {
          printf("%s: Client %d: Sending volume command ok confirmation to client\n", prog, client.getID());
       }
-      if(client.send("ok\n", useEnc) == FAILURE) {
+      if(client.send("ok\n", client.isEnc()) == FAILURE) {
          if(verbose >= VERBOSE) {
             fprintf(stderr, "%s: Error sending volume command confirmation to client %d\n", prog, client.getID());
          }
@@ -466,7 +477,7 @@ int processCommand() {
       }
 
       // Get number of channels being set
-      recvLen = client.receive(&reply, useEnc);
+      recvLen = client.receive(&reply, client.isEnc());
       num_channels = atoi(reply.c_str());
 
       // Validate the reply
@@ -482,7 +493,7 @@ int processCommand() {
       if(verbose >= DBL_VERBOSE) {
          printf("%s: Client %d: Sending volume command channel number ok confirmation to client\n", prog, client.getID());
       }
-      if(client.send("ok\n", useEnc) == FAILURE) {
+      if(client.send("ok\n", client.isEnc()) == FAILURE) {
          if(verbose >= VERBOSE) {
             fprintf(stderr, "%s: Error sending volume command channel number confirmation to client %d\n", prog, client.getID());
          }
@@ -491,7 +502,7 @@ int processCommand() {
 
       for(int i=0; i<num_channels; i++) {
          // Get volume command arg (channel and vol percent)
-         recvLen = client.receive(&reply, useEnc);
+         recvLen = client.receive(&reply, client.isEnc());
 
          // Validate the reply
          if(recvLen == FAILURE) {
@@ -516,7 +527,7 @@ int processCommand() {
          }
 
          // Send the response
-         if(client.send(send, useEnc) == FAILURE) {
+         if(client.send(send, client.isEnc()) == FAILURE) {
             if(verbose >= VERBOSE) {
                fprintf(stderr, "%s: Error sending command reply to client %d\n", prog, client.getID());
             }
@@ -535,7 +546,7 @@ int processCommand() {
       fprintf(stderr, "%s: client %d sent unknown command\n", prog, client.getID());
 
       // Send an error to the client
-      if(client.send("err\n", useEnc) == FAILURE) {
+      if(client.send("err\n", client.isEnc()) == FAILURE) {
          if(verbose >= VERBOSE) {
             fprintf(stderr, "%s: Error sending command error to client %d\n", prog, client.getID());
          }
@@ -646,7 +657,6 @@ int sendMediaKey(unsigned int key) {
    }
 
    if(display == NULL) return FAILURE;
-
    // Get the keycode
    unsigned int keycode = XKeysymToKeycode(display, key);
 

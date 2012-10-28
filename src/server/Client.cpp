@@ -5,10 +5,11 @@
 
 #include "Client.h"
 
-Client::Client(int socket, sockaddr_storage clientInfo, int id) {
+Client::Client(int socket, sockaddr_storage clientInfo, int id, int useEnc) {
    this->socket     = socket;
    this->clientInfo = clientInfo;
    this->id         = id;
+   this->useEnc     = useEnc;
    crypto           = NULL;
 }
 
@@ -36,6 +37,8 @@ int Client::initCrypto() {
    }
 
    crypto = new Crypto();
+   useEnc = 1;
+
    return SUCCESS;
 }
 
@@ -126,6 +129,15 @@ int Client::getID() {
 }
 
 
+int Client::isEnc() {
+   return useEnc;
+}
+
+void Client::setEnc(int enc) {
+   useEnc = enc;
+}
+
+
 int Client::sendLocalPubKey() {
    unsigned char *pubKey;
 
@@ -172,28 +184,8 @@ int Client::sendAESKey() {
    // Get the AES key
    aesKeyLen = crypto->getAESKey(&aesKey);
 
-   /*fprintf(stderr, "AES key: %d\n", (int)aesKeyLen);
-   for(int i=0; i<(int)aesKeyLen; i++) {
-      fprintf(stderr, "%d: %2d | %2x\n", i, *(aesKey+i), *(aesKey+i));
-   }*/
-
    // Encrypt the AES key with RSA
    encAesKeyLen = crypto->rsaEncrypt(aesKey, aesKeyLen, &encAesKey, &ek, &ekl, &iv, &ivl);
-
-   /*fprintf(stderr, "\n\nivl: %d\n", (int)ivl);
-   for(int i=0; i<(int)ivl; i++) {
-      fprintf(stderr, "%d: %2d | %2x\n", i, *(iv+i), *(iv+i));
-   }
-
-   fprintf(stderr, "\n\nekl: %d\n", (int)ekl);
-   for(int i=0; i<(int)ekl; i++) {
-      fprintf(stderr, "%d: %2d | %2x\n", i, *(ek+i), *(ek+i));
-   }
-   
-   fprintf(stderr, "\n\nenc AES key: %d\n", (int)encAesKeyLen);
-   for(int i=0; i<(int)encAesKeyLen; i++) {
-      fprintf(stderr, "%d: %2d | %2x\n", i, *(encAesKey+i), *(encAesKey+i));
-   }*/
 
    // Send the encrypted AES key to the client
    sendStatus = ::send(socket, iv, (int)ivl, 0);
@@ -203,8 +195,8 @@ int Client::sendAESKey() {
    sendStatus = ::send(socket, encAesKey, (int)encAesKeyLen, 0);
 
    // Encrypted messages are dynamically allocated in the encrypt function so they need free'd
-   //free(encAesKey);
-   //encAesKey = NULL;
+   free(encAesKey);
+   encAesKey = NULL;
 
    return sendStatus;
 }

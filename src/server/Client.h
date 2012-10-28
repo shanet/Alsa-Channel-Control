@@ -24,7 +24,7 @@ using namespace std;
 class Client {
 
 public:
-   Client(int socket, sockaddr_storage clientInfo, int id);
+   Client(int socket, sockaddr_storage clientInfo, int id, int useEnc=0);
 
    Client();
 
@@ -46,6 +46,10 @@ public:
 
    int getID();
 
+   int isEnc();
+
+   void setEnc(int enc);
+
    // Crypto handshake functions
    int sendLocalPubKey();
 
@@ -56,6 +60,7 @@ public:
 private:
    int id;
    int socket;
+   int useEnc;
    sockaddr_storage clientInfo;
    Crypto *crypto;
 };

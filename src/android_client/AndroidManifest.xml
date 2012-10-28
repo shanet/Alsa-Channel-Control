@@ -9,20 +9,21 @@ https://github.com/shanet/Alsa-Channel-Control
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.shanet.alsa_control"
-    android:versionCode="3"
-    android:versionName="1.1.0" >
+    android:versionCode="4"
+    android:versionName="2.0.0" >
 
-    <uses-sdk android:minSdkVersion="5"
+    <uses-sdk android:minSdkVersion="14"
         android:targetSdkVersion="15" />
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     
     <application
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name" >
         <activity android:name=".Main"
-            android:label="@string/app_name" >
+            android:label="@string/app_name"
+            android:theme="@android:style/Theme.Holo"
+            android:configChanges="orientation|keyboardHidden|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

@@ -30,14 +30,14 @@
 using namespace std;
 
 
-char *prog;              // Name of the program
-int useEnc;              // Use encryption or not
-int clientEnc;           // If the client requested encryption
-int verbose;             // The verbose level
-Server server;           // The main server object
-Client client;           // Client connected to the server
-list<int> children;      // List of PIDs of all children created
-Display *display;        // Connection to X server
+const char *prog;    // Name of the program
+int useEnc;          // Use encryption or not
+int clientEnc;       // If the client requested encryption
+int verbose;         // The verbose level
+Server server;       // The main server object
+Client client;       // Client connected to the server
+list<int> children;  // List of PIDs of all children created
+Display *display;    // Connection to X server
 
 
 int clientHandshake();

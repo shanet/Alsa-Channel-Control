@@ -32,10 +32,17 @@ https://github.com/shanet/Alsa-Channel-Control
     <string name="emptyAddChannel">Channel cannot be blank!</string>
     <string name="emptyPort">Port cannot be blank!</string>
     
+    <string name="sentPlay">%s command sent</string>
+    <string name="sentNext">Next command sent</string>
+    <string name="sentPrev">Previous command sent</string>
+    
     <string name="connServer">Connecting to server&#8230;</string>
     <string name="commServer">Communicating with server&#8230;</string>
     
     <string name="submit">Submit</string>
+    <string name="play">Play/Pause</string>
+    <string name="next">Next</string>
+    <string name="prev">Prev</string>
     <string name="okay">Okay</string>
     <string name="yes">Yes</string>
     <string name="nope">Nope</string>
@@ -66,8 +73,12 @@ https://github.com/shanet/Alsa-Channel-Control
     <string name="unknownHostError">The specified server could not be found on the network.</string>
     <string name="serverCommErrorTitle">Server Error</string>
     <string name="serverCommError">The server sent unexpected data or no data at all.</string>
+    <string name="closedConnErrorTitle">Server Closed Connection</string>
+    <string name="closedConnError">The server unexpectedly closed the connection.</string>
     <string name="setVolumeErrorTitle">Set Volume Error</string>
     <string name="setVolumeError">An error occurred while setting the volume. Try again.</string>
+    <string name="mediaCommandErrorTitle">Media Command Error</string>
+    <string name="mediaCommandError">An error occurred while processing the media command on the server. Try again.</string>
     <string name="malformedDataErrorTitle">Malformed Data Error</string>
     <string name="malformedDataError">A background thread received malformed or unexpected data.</string>
     
@@ -93,7 +104,11 @@ https://github.com/shanet/Alsa-Channel-Control
 	
 	<string name="changelogTitle">Changelog</string>
    	<string name="changelogText">
-   		<b>Current Version: 1.1.0</b>
+   		<b>Current Version: 2.0.0</b>
+   		\n\n<b>2.0.0:</b>
+   			\n\t-Added media keys
+   			\n\t-Updated protocol to work with the newest version of the server
+   			\n\t-Connections with server kept open as long as possible
    		\n\n<b>1.1.0:</b>
    			\n\t-Live volume changes instead of having a submit button
    		\n\n<b>1.0.1:</b>

@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
    int optIndex;                      // Index of long opts for processing command line args
 
    // Set the program name we're running under and default verbose level
-   prog    = argv[0];
+   prog    = (argc >= 1) ? argv[0] : "Unknown";
    useEnc  = 0;
    verbose = NO_VERBOSE;
 
@@ -133,7 +133,7 @@ int main(int argc, char *argv[]) {
       }
 
       // Send the requested command
-      int cmdStatus;
+      int cmdStatus = 0;
       switch(cmd) {
          case CMD_VOL:
             if(verbose >= DBL_VERBOSE) {

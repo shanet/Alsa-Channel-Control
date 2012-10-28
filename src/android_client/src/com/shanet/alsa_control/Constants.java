@@ -20,6 +20,11 @@ public abstract class Constants {
 	
 	public static final int DEFAULT_PORT = 4242;
 	
+	public static final int CMD_VOL  = 0;
+	public static final int CMD_PLAY = 1;
+	public static final int CMD_NEXT = 2;
+	public static final int CMD_PREV = 3;
+	
 	public static final int ABOUT_THIS_APP = 0;
 	public static final int CHANGELOG = 1;
 	

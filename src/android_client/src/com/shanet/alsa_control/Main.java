@@ -12,6 +12,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.Menu;
@@ -20,15 +21,17 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.Toast;
 
 public class Main extends Activity {
 	
-	public static ArrayList<String> serverList = null;
+	public static ArrayList<String> serverList  = null;
 	public static ArrayList<String> channelList = null;
-	private Background bg = null;
+	private Background bg                        = null;
+    private boolean isPaused                    = false;
 	
 	@Override
     public void onCreate(Bundle savedInstanceState) {
@@ -94,40 +97,24 @@ public class Main extends Activity {
 				
 		    	// Check for empty server and channel lists
 				if(serverList.isEmpty()) {
-					Toast.makeText(Main.this, R.string.emptyServer, Toast.LENGTH_LONG).show();
+					Toast.makeText(Main.this, R.string.emptyServer, Toast.LENGTH_SHORT).show();
 					return;
 				} else if(channelList.isEmpty()) {
-					Toast.makeText(Main.this, R.string.emptyChannel, Toast.LENGTH_LONG).show();
+					Toast.makeText(Main.this, R.string.emptyChannel, Toast.LENGTH_SHORT).show();
 					return;
 				}
-				
-				int port = Utils.getIntPref(Main.this, "port");
-				
+								
 				// Construct the info bundle
 				Bundle serverInfo = new Bundle();
-				serverInfo.putInt("port", port);
+				serverInfo.putInt("command", Constants.CMD_VOL);
+				serverInfo.putStringArrayList("hosts", serverList);
+				serverInfo.putInt("port", Utils.getIntPref(Main.this, "port"));
 				serverInfo.putStringArrayList("channels", channelList);
 				serverInfo.putInt("leftVol", leftVol.getProgress());
 				serverInfo.putInt("rightVol", rightVol.getProgress());
-
-				// If the background object is null, init it
-				boolean firstConnect = false;
-				if(bg == null) {
-					bg = new Background(Main.this);
-					firstConnect = true;
-				}
 				
-				// Send the volumes to each channel to each server
-				for(int i=0; i<serverList.size(); i++) {
-					serverInfo.putString("host", serverList.get(i));
-					// Wait for the previous bg thread to finish if not the first time executing it since it must
-					// execute once before setting its status to finished
-					if(!firstConnect && bg.getStatus() != AsyncTask.Status.FINISHED) {
-						break;
-					}
-					bg = new Background(Main.this);
-					bg.execute(serverInfo);
-				}
+				// Call the bg thread to send the commands to the server
+				if(execBgThread(serverInfo) == Constants.FAILURE) return;
 			}
 			
         	public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -154,14 +141,106 @@ public class Main extends Activity {
 			}
 		});
                 
-        // Set the submit button listener
-        /*Button submit = (Button) findViewById(R.id.submit);
-        submit.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {								
-				//sendVol();
+        // Set the media button listeners
+        final ImageButton play = (ImageButton)findViewById(R.id.play);
+        final ImageButton next = (ImageButton)findViewById(R.id.next);
+        final ImageButton prev = (ImageButton)findViewById(R.id.prev);
+        
+        play.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {		
+		    	// Check for empty server list
+				if(serverList.isEmpty()) {
+					Toast.makeText(Main.this, R.string.emptyServer, Toast.LENGTH_SHORT).show();
+					return;
+				}
+				
+				// Change the button image to the play/pause icon
+				if(isPaused) {
+					play.setImageDrawable(getResources().getDrawable(R.drawable.play));
+				} else {
+					play.setImageDrawable(getResources().getDrawable(R.drawable.pause));
+				}
+					
+				// Build the bundle of data for the bg thread
+				Bundle serverInfo = new Bundle();
+				serverInfo.putInt("command", Constants.CMD_PLAY);
+				serverInfo.putStringArrayList("hosts", serverList);
+				serverInfo.putInt("port", Utils.getIntPref(Main.this, "port"));
+				
+				// Call the bg thread to send the commands to the server
+				execBgThread(serverInfo);
+				
+				// Show a toast confirmation that the command was sent
+				Toast.makeText(Main.this, String.format(Main.this.getString(R.string.sentPlay), ((isPaused) ? "Pause" : "Play")), Toast.LENGTH_SHORT).show();
+				
+				// Update the paused flag
+				isPaused = !isPaused;
 			}
-        });*/
+        });
+        
+        next.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {								
+		    	// Check for empty server list
+				if(serverList.isEmpty()) {
+					Toast.makeText(Main.this, R.string.emptyServer, Toast.LENGTH_SHORT).show();
+					return;
+				}
+			
+				// Build the bundle of data for the bg thread
+				Bundle serverInfo = new Bundle();
+				serverInfo.putInt("command", Constants.CMD_NEXT);
+				serverInfo.putStringArrayList("hosts", serverList);
+				serverInfo.putInt("port", Utils.getIntPref(Main.this, "port"));
+				
+				// Call the bg thread to send the commands to the server
+				execBgThread(serverInfo);
+				
+				// Show a toast confirmation that the command was sent
+				Toast.makeText(Main.this, R.string.sentNext, Toast.LENGTH_SHORT).show();
+			}
+        });
+        
+        prev.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {								
+		    	// Check for empty server list
+				if(serverList.isEmpty()) {
+					Toast.makeText(Main.this, R.string.emptyServer, Toast.LENGTH_SHORT).show();
+					return;
+				}
+				
+				// Build the bundle of data for the bg thread
+				Bundle serverInfo = new Bundle();
+				serverInfo.putInt("command", Constants.CMD_PREV);
+				serverInfo.putStringArrayList("hosts", serverList);
+				serverInfo.putInt("port", Utils.getIntPref(Main.this, "port"));
+				
+				// Call the bg thread to send the commands to the server
+				execBgThread(serverInfo);
+				
+				// Show a toast confirmation that the command was sent
+				Toast.makeText(Main.this, R.string.sentPrev, Toast.LENGTH_SHORT).show();
+			}
+        });
     }
+	
+	public int execBgThread(Bundle serverInfo) {
+		// If the background object is null, init it
+		boolean firstConnect = false;
+		if(bg == null) {
+			bg = new Background(Main.this);
+			firstConnect = true;
+		}
+		
+		// Wait for the previous bg thread to finish if not the first time executing it since it must
+		// execute once before setting its status to finished
+		if(!firstConnect && bg.getStatus() != AsyncTask.Status.FINISHED) {
+			return Constants.FAILURE;
+		}
+		bg = new Background(Main.this);
+		bg.execute(serverInfo);
+		
+		return Constants.SUCCESS;
+	}
 	
 	@Override
 	public void onResume() {
@@ -172,8 +251,22 @@ public class Main extends Activity {
 	
 	@Override
 	public void onStop() {
-		super.onStop(); 
+		super.onStop();
 		// This must be overridden for the save instance state function to be called for whatever reason
+	}
+	
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		
+		// Stop all the servers in the bg thread
+		Background.closeAllServers();
+	}
+	
+	
+	@Override
+	public void onConfigurationChanged(Configuration newConfig) {
+		super.onConfigurationChanged(newConfig);
 	}
 	
 	

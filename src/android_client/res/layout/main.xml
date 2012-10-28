@@ -60,6 +60,39 @@ https://github.com/shanet/Alsa-Channel-Control
 	        android:checked="true"
 	        android:layout_marginTop="10dip"/>
 	    
+	   	<LinearLayout android:id="@+id/mediaButtonsLayout"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	       	android:orientation="horizontal"
+	        android:layout_alignParentRight="true"
+   	        android:layout_below="@id/channelText"
+   	        android:layout_marginTop="20dip"
+   	        android:layout_marginRight="15dip">
+	        
+	        <ImageButton android:id="@+id/prev"
+		   	    android:layout_width="wrap_content"
+		   	    android:layout_height="wrap_content"
+		   	    android:layout_marginRight="30dip"
+		   	    android:contentDescription="@string/prev"
+		   	    android:background="@null"
+		   	    android:src="@drawable/prev"/>
+	        		   	
+		   	<ImageButton android:id="@+id/play"
+		   	    android:layout_width="wrap_content"
+		   	    android:layout_height="wrap_content"
+		   	    android:contentDescription="@string/play"
+		   	    android:background="@null"
+		   	    android:src="@drawable/play"/>
+		    	   	
+		   	<ImageButton android:id="@+id/next"
+		   	    android:layout_width="wrap_content"
+		   	    android:layout_height="wrap_content"
+		   	    android:layout_marginLeft="30dip"
+		   	   	android:contentDescription="@string/next"
+		   	   	android:background="@null"
+		   	    android:src="@drawable/next"/>
+	   	</LinearLayout>
+	    
 	    <RelativeLayout android:id="@+id/leftVolLayout"
 	        android:layout_width="fill_parent"
 			android:layout_height="wrap_content"
@@ -101,13 +134,5 @@ https://github.com/shanet/Alsa-Channel-Control
 		   	    android:progress="40"
 		   	    android:max="100"/>
 		</RelativeLayout>
-	   	
-	   	<!--<Button android:id="@+id/submit"
-	   	    android:layout_width="wrap_content"
-	   	    android:layout_height="wrap_content"
-	   	    android:layout_below="@id/rightVolLayout"
-	   	    android:layout_alignParentRight="true"
-	   	    android:layout_marginTop="5dip"
-	   	    android:text="@string/submit"/>-->
 	</RelativeLayout>
 </ScrollView>
