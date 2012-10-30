@@ -1,7 +1,13 @@
-# Ignore all the binary files Eclipse likes to make
+# Android junk
+*.apk
+*.ap_
+*.dex
 *.class
-src/android_client/bin/*
-src/android_client/gen/com/shanet/alsa_control/R.java
+src/android_client/bin/
+src/android_client/gen/
+src/android_client/local.properties
+
+# Binaries
 bin/alsa-server
 bin/alsa-client
 
