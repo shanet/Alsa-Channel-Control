@@ -10,6 +10,8 @@ The server and client will compile with just a basic development enviroment set 
 The Android client requires the Android SDK and Ant to be installed.
 While not required at compile-time, the Alsa program "amixer" is required for the server to
 work properly.
+In order to communicate with the X server, the startup script needs to change the user the server is running as to a user that is logged in to X. At the very least, it needs changed to a user that exists on the system.
+In `src/alsa-server` change the line `USER=shane` to a user on the target system.
 
 For the server and client:
 
