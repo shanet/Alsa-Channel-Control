@@ -7,6 +7,8 @@ CC=g++
 LANG=cpp
 
 PROJ_NAME=alsa-server
+VERSION = "\"4.0.0\""
+
 SERVER_BINARY=alsa-server
 CLIENT_BINARY=alsa-client
 ANDROID_CLIENT_BINARY=android-client.apk
@@ -26,7 +28,7 @@ SERVER_OBJECTS=$(SERVER_SOURCES:.$(LANG)=.o)
 CLIENT_OBJECTS=$(CLIENT_SOURCES:.$(LANG)=.o)
 CRYPTO_OBJECTS=$(CRYPTO_SOURCES:.$(LANG)=.o)
 
-CFLAGS=-Isrc/include/ -Isrc/crypto -Wall -Wextra
+CFLAGS=-Isrc/include/ -Isrc/crypto -Wall -Wextra -DVERSION=$(VERSION)
 
 DEBUG ?= 1
 ifeq ($(DEBUG), 1)

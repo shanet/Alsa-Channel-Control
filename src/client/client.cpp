@@ -514,6 +514,9 @@ void printUsage() {
           --port\t(-p)\tPort to connect on (%d if omitted)\n\
           --channel\t(-c)\tThe Alsa channel to change\n\
           --volume\t(-v)\tThe volume to set (0-100%%)\n\
+          --play\t(-l)\tSend a play/pause command\n\
+          --next\t(-n)\tSend a next command\n\
+          --prev\t(-r)\tSend a previous command\n\
           --verbose\t(-V)\tIncrease verbosity\n\
           --version\t\tPrint version\n\
           --help\t\t(-h)\tDisplay this message\n", prog, prog, DEFAULT_PORT);
@@ -521,5 +524,5 @@ void printUsage() {
 
 
 void printVersion() {
-   printf("%s: %s\n", prog, VERSION);
+   printf("%s: version %s\n", prog, VERSION);
 }

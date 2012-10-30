@@ -11,6 +11,7 @@ int main(int argc, char* argv[]) {
    char c;                    // Char for processing command line args
    int optIndex;              // Index of long opts for processing command line args
    int noFork = 0;            // To fork or not to fork, that is the function
+   char display_num[5] = "";  // The display to set the display env var to if not already set
 
    // Set the program name we're running under and default verbose level
    prog    = (argc >= 1) ? argv[0] : "Unknown";
@@ -30,16 +31,12 @@ int main(int argc, char* argv[]) {
       fprintf(stderr, "%s: Failed to install signal handlers\n", prog);
    }
 
-   // Set the DISPLAY env var display 0 if not already set
-   // This ensures that we can open a connection to the X server later assuming that
-   // the X server is running on display 0.
-   setenv("DISPLAY", ":0", 0);
-
    // Valid long options
    static struct option longOpts[] = {
       {"port",    required_argument, NULL, 'p'},
       {"encrypt", no_argument,       NULL, 'e'},
       {"no-fork", no_argument,       NULL, 'f'},
+      {"display", required_argument, NULL, 'd'},
       {"verbose", no_argument,       NULL, 'v'},
       {"version", no_argument,       NULL, 'V'},
       {"help",    no_argument,       NULL, 'h'}
@@ -56,8 +53,13 @@ int main(int argc, char* argv[]) {
          case 'e':
             useEnc = 1;
             break;
+         // Don't fork
          case 'f':
             noFork = 1;
+            break;
+         // X display to use
+         case 'd':
+            strncpy(display_num, optarg, 2);
             break;
          // Set verbose level
          case 'v':
@@ -77,6 +79,22 @@ int main(int argc, char* argv[]) {
             fprintf(stderr, "%s: Try \"%s -h\" for usage information.\n", prog, prog);
             return ABNORMAL_EXIT;
       }
+   }
+
+
+   // Set the DISPLAY env var display 0 if not already set or otherwise specified
+   // This ensures that we can open a connection to the X server later assuming that
+   // the X server is running on display 0.
+   if(display_num[0] == '\0') {
+      display_num[0] = ':';
+      display_num[1] = '0';
+      display_num[2] = '\0';
+   }
+   if(verbose >= DBL_VERBOSE) {
+      printf("%s: Display environment varable not set. Setting it to \"%s\"\n", prog, display_num);
+   }
+   if(setenv("DISPLAY", display_num, 0) == -1) {
+      fprintf(stderr, "%s: Error setting display environment variable: %s\n", prog, strerror(errno));
    }
 
    // Init the server
@@ -677,6 +695,7 @@ void printUsage() {
           --port\t(-p) [port]\tSpecify port number\n\
           --encrypt\t(-e)\t\tEncrypt communications\n\
           --no-fork\t(-f)\t\tDon't fork process on startup\n\
+          --display\t(-d)\t\tUse this value for the display environment variable if not already set\n\
           --verbose\t(-v)\t\tIncrease verbosity up to three levels\n\
           --version\t(-V)\t\tPrint version\n\
           --help\t(-h)\t\tDisplay this message\n", prog, prog);
@@ -684,5 +703,5 @@ void printUsage() {
 
 
 void printVersion() {
-   printf("%s: %s\n", NAME, VERSION);
+   printf("%s: version %s\n", NAME, VERSION);
 }

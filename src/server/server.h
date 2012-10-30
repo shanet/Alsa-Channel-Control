@@ -20,7 +20,6 @@
 #include "Constants.h"
 
 #define NAME    "Alsa Control Server"
-#define VERSION "3.2.0-beta"
 
 #define DEFAULT_PORT 4242
 
