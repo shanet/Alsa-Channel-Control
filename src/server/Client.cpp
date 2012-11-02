@@ -189,9 +189,9 @@ int Client::sendAESKey() {
 
    // Send the encrypted AES key to the client
    sendStatus = ::send(socket, iv, (int)ivl, 0);
-   sleep(1);
+   usleep(50000);
    sendStatus = ::send(socket, ek, (int)ekl, 0);
-   sleep(1);
+   usleep(50000);
    sendStatus = ::send(socket, encAesKey, (int)encAesKeyLen, 0);
 
    // Encrypted messages are dynamically allocated in the encrypt function so they need free'd
