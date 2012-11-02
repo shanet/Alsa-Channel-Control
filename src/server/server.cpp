@@ -39,11 +39,12 @@ int main(int argc, char* argv[]) {
       {"display", required_argument, NULL, 'd'},
       {"verbose", no_argument,       NULL, 'v'},
       {"version", no_argument,       NULL, 'V'},
-      {"help",    no_argument,       NULL, 'h'}
+      {"help",    no_argument,       NULL, 'h'},
+      {NULL,      0,                 0,      0}
    };
 
    // Parse the command line args
-   while((c = getopt_long(argc, argv, "p:efvVh", longOpts, &optIndex)) != -1) {
+   while((c = getopt_long(argc, argv, "p:efdvVh", longOpts, &optIndex)) != -1) {
       switch(c) {
          // The port to start the server on
          case 'p':

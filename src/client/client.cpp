@@ -37,7 +37,8 @@ int main(int argc, char *argv[]) {
 
       {"verbose", no_argument,       NULL, 'V'},
       {"version", no_argument,       NULL, 'q'},
-      {"help",    no_argument,       NULL, 'h'}
+      {"help",    no_argument,       NULL, 'h'},
+      {NULL,      0,                 0,      0}
    };
 
    // Parse the command line args
