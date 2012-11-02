@@ -513,14 +513,15 @@ void printUsage() {
    printf("%s: Usage: %s --host [host] --port [port] [options] --channel [channel] --volume [leftVol],[rightVol]\n\
           --host\t(-H)\tThe server to connect to (localhost if omitted)\n\
           --port\t(-p)\tPort to connect on (%d if omitted)\n\
+          --encrypt\t(-e)\tEncrypt communications with server\n\
           --channel\t(-c)\tThe Alsa channel to change\n\
           --volume\t(-v)\tThe volume to set (0-100%%)\n\
           --play\t(-l)\tSend a play/pause command\n\
           --next\t(-n)\tSend a next command\n\
           --prev\t(-r)\tSend a previous command\n\
           --verbose\t(-V)\tIncrease verbosity\n\
-          --version\t\tPrint version\n\
-          --help\t\t(-h)\tDisplay this message\n", prog, prog, DEFAULT_PORT);
+          --version\t(-q)\tPrint version\n\
+          --help\t(-h)\tDisplay this message\n", prog, prog, DEFAULT_PORT);
 }
 
 
