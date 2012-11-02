@@ -32,7 +32,7 @@ CFLAGS=-Isrc/include/ -Isrc/crypto -Wall -Wextra -DVERSION=$(VERSION)
 
 DEBUG ?= 1
 ifeq ($(DEBUG), 1)
-	CFLAGS += -ggdb
+	CFLAGS += -ggdb -DDEBUG
 else
 	CFLAGS += -O2
 endif
