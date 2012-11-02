@@ -12,7 +12,7 @@
 #include <string>
 #include <string.h>
 
-#define DEBUG
+//#define DEBUG
 
 // Key lengths should be in bits
 #ifdef DEBUG
