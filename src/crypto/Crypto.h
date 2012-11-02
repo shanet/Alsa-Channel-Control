@@ -12,8 +12,6 @@
 #include <string>
 #include <string.h>
 
-//#define DEBUG
-
 // Key lengths should be in bits
 #ifdef DEBUG
 #define DEFAULT_RSA_KEYLEN 1024
