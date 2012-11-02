@@ -37,8 +37,9 @@ else
 	CFLAGS += -O2
 endif
 
-LIBRARIES=-lcrypto
-SERVER_LIBRARIES=-lX11 -lXtst
+LIB_INCLUDES=
+LIBS=-lcrypto
+SERVER_LIBS=-lX11 -lXtst
 
 .PHONY: server server_debug client client_debug
 
@@ -46,10 +47,10 @@ SERVER_LIBRARIES=-lX11 -lXtst
 all: server client android
 
 server: $(SERVER_OBJECTS) $(CRYPTO_OBJECTS)
-	$(CC) -o bin/$(SERVER_BINARY) $^ $(LIBRARIES) $(SERVER_LIBRARIES)
+	$(CC) -o bin/$(SERVER_BINARY) $^ $(LIB_INCLUDES) $(LIBS) $(SERVER_LIBS)
 
 client: $(CLIENT_OBJECTS) $(CRYPTO_OBJECTS)
-	$(CC) -o bin/$(CLIENT_BINARY) $^ $(LIBRARIES)
+	$(CC) -o bin/$(CLIENT_BINARY) $^ $(LIB_INCLUDES) $(LIBS)
 
 android:
 	ant -f src/android_client/build.xml debug
