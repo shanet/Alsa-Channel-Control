@@ -96,7 +96,7 @@ int Crypto::rsaEncrypt(const unsigned char *msg, size_t msgLen, unsigned char **
     *encMsg = (unsigned char*)malloc(EVP_PKEY_size(remotePubKey));
     if(encMsg == NULL) return FAILURE;
 
-    if(!EVP_SealInit(rsaEncryptCtx, EVP_aes_128_cbc(), ek, (int*)ekl, *iv, &remotePubKey, 1)) {
+    if(!EVP_SealInit(rsaEncryptCtx, EVP_aes_256_cbc(), ek, (int*)ekl, *iv, &remotePubKey, 1)) {
         return FAILURE;
     }
 
@@ -169,7 +169,7 @@ int Crypto::rsaDecrypt(unsigned char *encMsg, size_t encMsgLen, unsigned char *e
 
     char *err = (char*)malloc(130);
 
-    if(!EVP_OpenInit(rsaDecryptCtx, EVP_aes_128_cbc(), ek, ekl, iv, key)) {
+    if(!EVP_OpenInit(rsaDecryptCtx, EVP_aes_256_cbc(), ek, ekl, iv, key)) {
         ERR_load_crypto_strings();
         ERR_error_string(ERR_get_error(), err);
         fprintf(stderr, "Error decrypting message1: %s\n", err);
