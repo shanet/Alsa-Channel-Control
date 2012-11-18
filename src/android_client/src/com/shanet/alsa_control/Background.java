@@ -82,6 +82,7 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 		ArrayList<String> channels = info.getStringArrayList("channels");
 		int leftVol = info.getInt("leftVol");
 		int rightVol = info.getInt("rightVol");
+		boolean useEnc = false;
 		
 		// Send the requested commands to the server in one swoop
 		Server server;
@@ -113,7 +114,7 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 					
 					// This is the first connection with the server so we must perform the handshake
 					// Check the server sent the welcome message
-					if(!server.receive().equals("helo")) {
+					if(!server.receive(false).equals("helo")) {
 						((Activity)context).runOnUiThread(new Runnable() {
 							public void run() {
 								DialogUtils.displayErrorDialog(context, R.string.serverCommErrorTitle, R.string.serverCommError);
@@ -121,17 +122,17 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 						});
 						
 						// Something is wrong
-						server.send("end");
+						server.send("end", false);
 						server.close();
 						continue;
 					}
 		
 					// Tell the server if we're using encryption or not
 					// For now, this client doesn't support encryption
-					server.send("noenc");
+					server.send("noenc", false);
 					
 					// Check for the ready command	
-					if(!server.receive().equals("redy") ) {
+					if(!server.receive(false).equals("redy")) {
 						((Activity)context).runOnUiThread(new Runnable() {
 							public void run() {
 								DialogUtils.displayErrorDialog(context, R.string.serverCommErrorTitle, R.string.serverCommError);
@@ -139,7 +140,7 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 						});
 						
 						// Something is wrong. We can't continue without a ready command
-						server.send("end");
+						server.send("end", false);
 						server.close();
 						continue;
 					}
@@ -158,10 +159,10 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 				switch(command) {
 					case Constants.CMD_VOL:
 						// Send the volume command
-						server.send("vol");
+						server.send("vol", useEnc);
 
 						// Check for okay
-						reply = server.receive();
+						reply = server.receive(useEnc);
 						if(reply.equals("err")) {
 							((Activity)context).runOnUiThread(new Runnable() {
 								public void run() {
@@ -171,16 +172,16 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 							continue;
 						// Check if server requested to close connection
 						} else if(reply.equals("end")) {
-							server.send("bye");
+							server.send("bye", useEnc);
 							server.close();
 							continue;
 						}
 						
 						// Send how many channels we're about to send
-						server.send(Integer.valueOf(channels.size()).toString());
+						server.send(Integer.valueOf(channels.size()).toString(), useEnc);
 						
 						// Check for okay
-						reply = server.receive();
+						reply = server.receive(useEnc);
 						if(reply.equals("err")) {
 							((Activity)context).runOnUiThread(new Runnable() {
 								public void run() {
@@ -190,7 +191,7 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 							continue;
 						// Check if server requested to close connection
 						} else if(reply.equals("end")) {
-							server.send("bye");
+							server.send("bye", useEnc);
 							server.close();
 							continue;
 						}
@@ -198,10 +199,10 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 						// Send the volume command						
 						for(int i=0; i<channels.size(); i++) {							
 							// Send the volume data
-							server.send(channels.get(i) + "=" + leftVol + "," + rightVol);
+							server.send(channels.get(i) + "=" + leftVol + "," + rightVol, useEnc);
 							
 							// Check for confirmation of changed volume
-							reply = server.receive();
+							reply = server.receive(useEnc);
 							if(reply.equals("err")) {
 								((Activity)context).runOnUiThread(new Runnable() {
 									public void run() {
@@ -211,7 +212,7 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 								continue;
 							// Check if server requested to close connection
 							} else if(reply.equals("end")) {
-								server.send("bye");
+								server.send("bye", useEnc);
 								server.close();
 								continue;
 							}
@@ -224,18 +225,18 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 						// Send the media command
 						switch(command) {
 							case Constants.CMD_PLAY:
-								server.send("play");
+								server.send("play", useEnc);
 								break;
 							case Constants.CMD_NEXT:
-								server.send("next");
+								server.send("next", useEnc);
 								break;
 							case Constants.CMD_PREV:
-								server.send("prev");
+								server.send("prev", useEnc);
 								break;
 						}
 						
 						// Check for errors
-						reply = server.receive();
+						reply = server.receive(useEnc);
 						if(reply.equals("err")) {
 							((Activity)context).runOnUiThread(new Runnable() {
 								public void run() {
@@ -244,7 +245,7 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 							});
 						// Check if server requested to close connection
 						} else if(reply.equals("end")) {
-							server.send("bye");
+							server.send("bye", useEnc);
 							server.close();
 							continue;
 						}
@@ -298,7 +299,7 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 		return Constants.SUCCESS;
 	}
 	
-	public static void closeAllServers() {
+	public static void closeAllServers(boolean useEnc) {
 		Collection<Server> servers = Background.servers.values();
 		if(servers == null) return;
 		
@@ -310,7 +311,7 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 				curServer = iter.next();
 				if(curServer != null) {
 					if(curServer.isConnected()) {
-						curServer.send("end");
+						curServer.send("end", useEnc);
 					}
 					
 					curServer.close();

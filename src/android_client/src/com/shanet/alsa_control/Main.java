@@ -260,7 +260,7 @@ public class Main extends Activity {
 		super.onDestroy();
 		
 		// Stop all the servers in the bg thread
-		Background.closeAllServers();
+		Background.closeAllServers(false);
 	}
 	
 	
