@@ -110,8 +110,6 @@ int Crypto::rsaEncrypt(const unsigned char *msg, size_t msgLen, unsigned char **
     }
     encMsgLen += blockLen;
 
-    //EVP_CIPHER_CTX_cleanup(rsaEncryptCtx);
-
     return (int)encMsgLen;
 }
 
@@ -128,14 +126,12 @@ int Crypto::aesEncrypt(const unsigned char *msg, size_t msgLen, unsigned char **
     if(!EVP_EncryptInit_ex(aesEncryptCtx, EVP_aes_256_cbc(), NULL, aesKey, aesIV)) {
         ERR_load_crypto_strings();
         ERR_error_string(ERR_get_error(), err);
-        fprintf(stderr, "Error encrypting message1: %s\n", err);
         return FAILURE;
     }
 
     if(!EVP_EncryptUpdate(aesEncryptCtx, *encMsg, (int*)&blockLen, (unsigned char*)msg, msgLen)) {
         ERR_load_crypto_strings();
         ERR_error_string(ERR_get_error(), err);
-        fprintf(stderr, "Error encrypting message2: %s\n", err);
         return FAILURE;
     }
     encMsgLen += blockLen;
@@ -143,7 +139,6 @@ int Crypto::aesEncrypt(const unsigned char *msg, size_t msgLen, unsigned char **
     if(!EVP_EncryptFinal_ex(aesEncryptCtx, *encMsg + encMsgLen, (int*)&blockLen)) {
         ERR_load_crypto_strings();
         ERR_error_string(ERR_get_error(), err);
-        fprintf(stderr, "Error encrypting message3: %s\n", err);
         return FAILURE;
     }
 
@@ -172,14 +167,12 @@ int Crypto::rsaDecrypt(unsigned char *encMsg, size_t encMsgLen, unsigned char *e
     if(!EVP_OpenInit(rsaDecryptCtx, EVP_aes_256_cbc(), ek, ekl, iv, key)) {
         ERR_load_crypto_strings();
         ERR_error_string(ERR_get_error(), err);
-        fprintf(stderr, "Error decrypting message1: %s\n", err);
         return FAILURE;
     }
 
     if(!EVP_OpenUpdate(rsaDecryptCtx, (unsigned char*)*decMsg + decLen, (int*)&blockLen, encMsg, (int)encMsgLen)) {
         ERR_load_crypto_strings();
         ERR_error_string(ERR_get_error(), err);
-        fprintf(stderr, "Error decrypting message2: %s\n", err);
         return FAILURE;
     }
     decLen += blockLen;
@@ -187,14 +180,11 @@ int Crypto::rsaDecrypt(unsigned char *encMsg, size_t encMsgLen, unsigned char *e
     if(!EVP_OpenFinal(rsaDecryptCtx, (unsigned char*)*decMsg + decLen, (int*)&blockLen)) {
         ERR_load_crypto_strings();
         ERR_error_string(ERR_get_error(), err);
-        fprintf(stderr, "Error decrypting message3: %s\n", err);
         return FAILURE;
     }
     decLen += blockLen;
 
     (*decMsg)[decLen] = '\0';
-
-    //EVP_CIPHER_CTX_cleanup(rsaDecryptCtx);
 
     return (int)decLen;
 }

@@ -67,7 +67,7 @@ int Client::connectToServer(int aiFamily) {
 
 
 int Client::getAddressInfo(int aiFamily) {
-	stringstream host, port;
+   stringstream host, port;
    struct addrinfo hints;
    
    // Convert host and port to strings so they can be passed as a char* below
@@ -82,7 +82,6 @@ int Client::getAddressInfo(int aiFamily) {
 
    // Get the list of results (res)
    return (getaddrinfo(host.str().c_str(), port.str().c_str(), &hints, &serverInfo) == SUCCESS) ? SUCCESS : FAILURE;
-   
 }
 
 
@@ -181,7 +180,7 @@ int Client::receive(string *reply, int useEnc) {
 
   
 string Client::getServerIPAddress() const {
-	// Make the IP long enough for IPv6 addresses, even though we currently only support IPv4
+   // Make the IP long enough for IPv6 addresses, even though we currently only support IPv4
    char ip[INET6_ADDRSTRLEN];
 
    inet_ntop(serverInfo->ai_family, &((sockaddr_in*)serverInfo)->sin_addr, ip, sizeof ip);
@@ -196,7 +195,7 @@ int Client::getSocket() const {
 
 
 int Client::getPort() const {
-	return port;
+   return port;
 }
 
 
@@ -281,33 +280,12 @@ int Client::receiveAESKey() {
       return END;
    }
 
-   /*fprintf(stderr, "\n\nivl: %d\n", (int)ivl);
-   for(int i=0; i<(int)ivl; i++) {
-      fprintf(stderr, "%d: %2d | %2x\n", i, *(iv+i), *(iv+i));
-   }
-
-   fprintf(stderr, "\n\nekl: %d\n", (int)ekl);
-   for(int i=0; i<(int)ekl; i++) {
-      fprintf(stderr, "%d: %2d | %2x\n", i, *(ek+i), *(ek+i));
-   }
-
-   fprintf(stderr, "\n\nenc AES key: %d\n", (int)encAesKeyLen);
-   for(int i=0; i<(int)encAesKeyLen; i++) {
-      fprintf(stderr, "%d: %2d | %2x\n", i, *(encAesKey+i), *(encAesKey+i));
-   }*/
-
    // Decrypt the AES key
    if(crypto == NULL) return FAILURE;
 
    if((aesKeyLen = crypto->rsaDecrypt(encAesKey, encAesKeyLen, ek, ekl, iv, ivl, &aesKey)) == FAILURE) {
-      fprintf(stderr, "DECRYPT FAILED\n");
       return FAILURE;
    }
-
-   /*fprintf(stderr, "\n\nAES KEY: %d\n", (int)aesKeyLen);
-   for(int i=0; i<(int)aesKeyLen; i++) {
-      fprintf(stderr, "%d: %2d | %2x\n", i, *(aesKey+i), *(aesKey+i));
-   }*/
 
    // Set the public key in the crypto object
    setAesStatus = crypto->setAESKey(aesKey, aesKeyLen);
