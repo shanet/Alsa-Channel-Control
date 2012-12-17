@@ -2,6 +2,7 @@
 package com.shanet.alsa_control;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,7 +56,7 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 	}	    
 
 	protected void onPreExecute() {
-		timer.schedule(tt, 200);
+		timer.schedule(tt, 500);
 	}
 
 	protected void onPostExecute(Integer result) {
@@ -91,7 +92,16 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 		for(final String host : hosts) {
 			// Create a new server for the host if it doesn't already exist
 			if(!servers.containsKey(host)) {
-				servers.put(host, new Server(host, port));
+				try {
+					servers.put(host, new Server(host, port));
+				} catch (SocketException e) {
+					((Activity)context).runOnUiThread(new Runnable() {
+						public void run() {
+							DialogUtils.displayErrorDialog(context, R.string.serverCommErrorTitle, R.string.serverCommError);
+						}
+					});
+					continue;
+				}
 			}
 			
 			// Get the server object for the given host
@@ -267,13 +277,13 @@ public class Background extends AsyncTask<Bundle, Integer, Integer> {
 				try {
 					if(server != null) server.close();
 				} catch (IOException ioe) {}
-			} catch (IOException ioe) {
+			} catch (final IOException ioe) {
 				ioe.printStackTrace();
 	
 				((Activity)context).runOnUiThread(new Runnable() {
 					public void run() {
 						dialog.dismiss();
-						DialogUtils.displayErrorDialog(context, R.string.serverCommErrorTitle, R.string.serverCommError);
+						DialogUtils.displayErrorDialog(context, context.getString(R.string.serverCommErrorTitle), ioe.getMessage());
 					}
 				});
 				

@@ -75,6 +75,8 @@ https://github.com/shanet/Alsa-Channel-Control
     <string name="serverCommError">The server sent unexpected data or no data at all.</string>
     <string name="closedConnErrorTitle">Server Closed Connection</string>
     <string name="closedConnError">The server unexpectedly closed the connection.</string>
+    <string name="setStateErrorTitle">Server Error</string>
+    <string name="setStateError">The server reported an error. Try again.</string>
     <string name="setVolumeErrorTitle">Set Volume Error</string>
     <string name="setVolumeError">An error occurred while setting the volume. Try again.</string>
     <string name="mediaCommandErrorTitle">Media Command Error</string>

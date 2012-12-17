@@ -21,6 +21,11 @@ import android.widget.Toast;
 public abstract class DialogUtils {
 
 	public static void displayErrorDialog(Context context, int title, int message) {
+		displayErrorDialog(context, context.getString(title), context.getString(message));
+	}
+	
+	
+	public static void displayErrorDialog(Context context, String title, String message) {
 		// This function displays error messages with a given title and message.
 		// It cuts down on duplicate code.
 		new AlertDialog.Builder(context)
@@ -106,7 +111,7 @@ public abstract class DialogUtils {
 		
 		// Set the edit text to the current port
 		final EditText portInput = (EditText) layout.findViewById(R.id.addContentEdit);
-		portInput.setText(new Integer(Utils.getIntPref(context, "port")).toString());
+		portInput.setText(Integer.valueOf(Utils.getIntPref(context, "port")).toString());
 
 		new AlertDialog.Builder(context)
 			.setTitle(context.getString(R.string.editPort))

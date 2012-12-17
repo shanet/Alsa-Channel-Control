@@ -19,6 +19,7 @@ public abstract class Constants {
 	public static final String CHANNELS_FILE = "channels.txt";
 	
 	public static final int DEFAULT_PORT = 4242;
+	public static final int NETWORK_TIMEOUT = 3000;
 	
 	public static final int CMD_VOL  = 0;
 	public static final int CMD_PLAY = 1;
