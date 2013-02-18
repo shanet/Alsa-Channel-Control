@@ -27,16 +27,12 @@ Crypto::Crypto() {
 
 
 Crypto::Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen) {
-    localKeypair  = NULL;
-    remotePubKey  = NULL;
-    rsaSymKey     = NULL;
-    rsaSymKeyLen  = 0;
-    rsaIV         = NULL;
-    encryptLen    = 0;
-
-    #ifdef PSUEDO_CLIENT
-        genTestClientKey(DEFAULT_RSA_KEYLEN);
-    #endif
+    localKeypair       = NULL;
+    this->remotePubKey  = NULL;
+    rsaSymKey          = NULL;
+    rsaSymKeyLen       = 0;
+    rsaIV              = NULL;
+    encryptLen         = 0;
 
     setRemotePubKey(remotePubKey, remotePubKeyLen);
     init(DEFAULT_RSA_KEYLEN, DEFAULT_AES_KEYLEN);
@@ -44,19 +40,14 @@ Crypto::Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen) {
 
 
 Crypto::Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen, size_t rsaKeyLen, size_t aesKeyLen) {
-    localKeypair  = NULL;
-    remotePubKey  = NULL;
-    rsaSymKey     = NULL;
-    rsaSymKeyLen  = 0;
-    rsaIV         = NULL;
-    encryptLen    = 0;
+    localKeypair        = NULL;
+    this->remotePubKey  = NULL;
+    rsaSymKey           = NULL;
+    rsaSymKeyLen        = 0;
+    rsaIV               = NULL;
+    encryptLen          = 0;
 
-    #ifdef PSUEDO_CLIENT
-        genTestClientKey(DEFAULT_RSA_KEYLEN);
-    #else
-        setRemotePubKey(remotePubKey, remotePubKeyLen);
-    #endif
-
+    setRemotePubKey(remotePubKey, remotePubKeyLen);
     init(rsaKeyLen, aesKeyLen);
 }
 
