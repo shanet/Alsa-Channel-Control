@@ -8,6 +8,7 @@ src/android_client/gen/
 src/android_client/local.properties
 
 # Binaries
+*.o
 bin/alsa-server
 bin/alsa-client
 
