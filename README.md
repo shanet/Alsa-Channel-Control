@@ -1,5 +1,5 @@
 # Alsa Control Server
-### Author: Shane Tully (shane@shanetully.com)
+### Shane Tully (shane@shanetully.com)
 ### shanetully.com
 
 https://github.com/shanet/Alsa-Channel-Control
@@ -42,8 +42,18 @@ linked to above.
 
 
 ## Legal
-This program is open source software. It is free to distribute, modify, and use
-with the exception of it being made closed source and sold for commercial purposes
-without the consent of the author. However, the author simply requests that if you 
-do something cool with it, you let him check it out by emailing shane@shanetully.com 
-or just let him know you find it useful.
+Copyright (C) 2012-2013 Shane Tully
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
