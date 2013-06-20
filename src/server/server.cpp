@@ -578,11 +578,12 @@ int processCommand() {
 int parseVolCommand(const string command) {
    // Command should be in the format [channel]=[leftVol],[rightVol]
    string channel;
-   int equalsIndex, commaIndex;
+   size_t equalsIndex, commaIndex;
    int leftVol, rightVol;
 
    // Get the equals and comma index
-   if((equalsIndex = command.find('=')) == string::npos || (commaIndex = command.find(',')) == string::npos) {
+   if((equalsIndex = command.find('=')) == string::npos ||
+      (commaIndex = command.find(',')) == string::npos) {
       return PARSE_ERROR;
    }
 

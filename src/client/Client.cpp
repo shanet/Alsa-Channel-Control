@@ -129,7 +129,7 @@ int Client::send(string data, int useEnc) {
 
    // Attempt data encryption if requested
    if(useEnc && crypto != NULL) {
-      if((msgLen = crypto->aesEncrypt((const unsigned char*)data.c_str(), data.length(), &msg)) == FAILURE) {
+      if((msgLen = crypto->aesEncrypt((const unsigned char*)data.c_str(), data.length(), &msg)) == (unsigned int)FAILURE) {
          return FAILURE;
       }
    // Otherwise, just send the data as a c-string

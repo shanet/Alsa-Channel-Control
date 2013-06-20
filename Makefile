@@ -7,7 +7,7 @@ CC=g++
 LANG=cpp
 
 PROJ_NAME=alsa-server
-VERSION = "\"4.0.0\""
+VERSION = "\"4.0.1\""
 
 SERVER_BINARY=alsa-server
 CLIENT_BINARY=alsa-client

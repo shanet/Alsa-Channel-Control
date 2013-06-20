@@ -7,16 +7,11 @@
 
 using namespace std;
 
-// Static member variables
 EVP_PKEY* Crypto::localKeypair;
 
 Crypto::Crypto() {
     localKeypair  = NULL;
     remotePubKey  = NULL;
-    rsaSymKey     = NULL;
-    rsaSymKeyLen  = 0;
-    rsaIV         = NULL;
-    encryptLen    = 0;
 
     #ifdef PSUEDO_CLIENT
         genTestClientKey(DEFAULT_RSA_KEYLEN);
@@ -28,11 +23,7 @@ Crypto::Crypto() {
 
 Crypto::Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen) {
     localKeypair       = NULL;
-    this->remotePubKey  = NULL;
-    rsaSymKey          = NULL;
-    rsaSymKeyLen       = 0;
-    rsaIV              = NULL;
-    encryptLen         = 0;
+    this->remotePubKey = NULL;
 
     setRemotePubKey(remotePubKey, remotePubKeyLen);
     init(DEFAULT_RSA_KEYLEN, DEFAULT_AES_KEYLEN);
@@ -42,10 +33,6 @@ Crypto::Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen) {
 Crypto::Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen, size_t rsaKeyLen, size_t aesKeyLen) {
     localKeypair        = NULL;
     this->remotePubKey  = NULL;
-    rsaSymKey           = NULL;
-    rsaSymKeyLen        = 0;
-    rsaIV               = NULL;
-    encryptLen          = 0;
 
     setRemotePubKey(remotePubKey, remotePubKeyLen);
     init(rsaKeyLen, aesKeyLen);
@@ -53,7 +40,6 @@ Crypto::Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen, size_t rsaKe
 
 
 Crypto::~Crypto() {
-    EVP_PKEY_free(localKeypair);
     EVP_PKEY_free(remotePubKey);
 
     EVP_CIPHER_CTX_cleanup(rsaEncryptCtx);
@@ -68,9 +54,6 @@ Crypto::~Crypto() {
     free(rsaDecryptCtx);
     free(aesDecryptCtx);
 
-    free(rsaSymKey);
-    free(rsaIV);
-    
     free(aesKey);
     free(aesIV);
 }
@@ -84,7 +67,7 @@ int Crypto::rsaEncrypt(const unsigned char *msg, size_t msgLen, unsigned char **
     *iv = (unsigned char*)malloc(EVP_MAX_IV_LENGTH);
     *ivl = EVP_MAX_IV_LENGTH;
 
-    *encMsg = (unsigned char*)malloc(EVP_PKEY_size(remotePubKey));
+    *encMsg = (unsigned char*)malloc(msgLen + EVP_MAX_IV_LENGTH);
     if(encMsg == NULL) return FAILURE;
 
     if(!EVP_SealInit(rsaEncryptCtx, EVP_aes_256_cbc(), ek, (int*)ekl, *iv, &remotePubKey, 1)) {
@@ -101,6 +84,8 @@ int Crypto::rsaEncrypt(const unsigned char *msg, size_t msgLen, unsigned char **
     }
     encMsgLen += blockLen;
 
+    EVP_CIPHER_CTX_cleanup(rsaEncryptCtx);
+
     return (int)encMsgLen;
 }
 
@@ -112,28 +97,20 @@ int Crypto::aesEncrypt(const unsigned char *msg, size_t msgLen, unsigned char **
     *encMsg = (unsigned char*)malloc(msgLen + AES_BLOCK_SIZE);
     if(encMsg == NULL) return FAILURE;
 
-    char *err = (char*)malloc(130);
-
     if(!EVP_EncryptInit_ex(aesEncryptCtx, EVP_aes_256_cbc(), NULL, aesKey, aesIV)) {
-        ERR_load_crypto_strings();
-        ERR_error_string(ERR_get_error(), err);
         return FAILURE;
     }
 
     if(!EVP_EncryptUpdate(aesEncryptCtx, *encMsg, (int*)&blockLen, (unsigned char*)msg, msgLen)) {
-        ERR_load_crypto_strings();
-        ERR_error_string(ERR_get_error(), err);
         return FAILURE;
     }
     encMsgLen += blockLen;
 
     if(!EVP_EncryptFinal_ex(aesEncryptCtx, *encMsg + encMsgLen, (int*)&blockLen)) {
-        ERR_load_crypto_strings();
-        ERR_error_string(ERR_get_error(), err);
         return FAILURE;
     }
 
-    //EVP_CIPHER_CTX_cleanup(aesEncryptCtx);
+    EVP_CIPHER_CTX_cleanup(aesEncryptCtx);
 
     return encMsgLen + blockLen;
 }
@@ -147,35 +124,29 @@ int Crypto::rsaDecrypt(unsigned char *encMsg, size_t encMsgLen, unsigned char *e
     *decMsg = (unsigned char*)malloc(encMsgLen + ivl);
     if(decMsg == NULL) return FAILURE;
 
-    /*#ifdef PSUEDO_CLIENT
+    #ifdef PSUEDO_CLIENT
         key = remotePubKey;
-    #else*/
+    #else
         key = localKeypair;
-    //#endif
-
-    char *err = (char*)malloc(130);
+    #endif
 
     if(!EVP_OpenInit(rsaDecryptCtx, EVP_aes_256_cbc(), ek, ekl, iv, key)) {
-        ERR_load_crypto_strings();
-        ERR_error_string(ERR_get_error(), err);
         return FAILURE;
     }
 
     if(!EVP_OpenUpdate(rsaDecryptCtx, (unsigned char*)*decMsg + decLen, (int*)&blockLen, encMsg, (int)encMsgLen)) {
-        ERR_load_crypto_strings();
-        ERR_error_string(ERR_get_error(), err);
         return FAILURE;
     }
     decLen += blockLen;
 
     if(!EVP_OpenFinal(rsaDecryptCtx, (unsigned char*)*decMsg + decLen, (int*)&blockLen)) {
-        ERR_load_crypto_strings();
-        ERR_error_string(ERR_get_error(), err);
         return FAILURE;
     }
     decLen += blockLen;
 
     (*decMsg)[decLen] = '\0';
+
+    EVP_CIPHER_CTX_cleanup(rsaDecryptCtx);
 
     return (int)decLen;
 }
@@ -236,7 +207,7 @@ int Crypto::getRemotePubKey(unsigned char **pubKey) {
     int pubKeyLen = BIO_pending(bio);
     *pubKey = (unsigned char*)malloc(pubKeyLen);
     if(pubKey == NULL) return FAILURE;
-    
+
     BIO_read(bio, *pubKey, pubKeyLen);
 
     // Insert the null terminator
@@ -263,7 +234,7 @@ int Crypto::setRemotePubKey(unsigned char* pubKey, size_t pubKeyLen) {
 
     //PEM_read_bio_RSAPublicKey(bio, &_pubKey, NULL, NULL);
     /*PEM_read_bio_RSA_PUBKEY(bio, &_pubKey, NULL, NULL);
-    
+
     if(!EVP_PKEY_assign_RSA(remotePubKey, _pubKey)) {
         return FAILURE;
     }*/
@@ -282,7 +253,7 @@ int Crypto::getLocalPubKey(unsigned char** pubKey) {
     int pubKeyLen = BIO_pending(bio);
     *pubKey = (unsigned char*)malloc(pubKeyLen);
     if(pubKey == NULL) return FAILURE;
-    
+
     BIO_read(bio, *pubKey, pubKeyLen);
 
     // Insert the null terminator
@@ -297,13 +268,13 @@ int Crypto::getLocalPubKey(unsigned char** pubKey) {
 int Crypto::getLocalPriKey(unsigned char **priKey) {
     BIO *bio = BIO_new(BIO_s_mem());
 
-    // TODO fix this! It doesn't work.
-    PEM_write_bio_PrivateKey(bio, localKeypair, EVP_aes_128_cbc(), rsaSymKey, rsaSymKeyLen, 0, NULL);
+    // TODO: get around to fixing this! It doesn't work.
+    //PEM_write_bio_PrivateKey(bio, localKeypair, EVP_aes_128_cbc(), ek, ekl, 0, NULL);
 
     int priKeyLen = BIO_pending(bio);
     *priKey = (unsigned char*)malloc(priKeyLen + 1);
     if(priKey == NULL) return FAILURE;
-    
+
     BIO_read(bio, *priKey, priKeyLen);
 
     // Insert the null terminator
@@ -372,18 +343,15 @@ int Crypto::init(size_t rsaKeyLen, size_t aesKeyLen) {
 
     EVP_PKEY_CTX_free(ctx);
 
-    rsaSymKey = (unsigned char*)malloc(rsaKeyLen/8);
-    rsaIV = (unsigned char*)malloc(EVP_MAX_IV_LENGTH);
-
     // Init AES
     aesKey = (unsigned char*)malloc(aesKeyLen/8 + EVP_MAX_IV_LENGTH);
     aesIV = (unsigned char*)malloc(aesKeyLen/8);
     this->aesKeyLen = aesKeyLen/8 + EVP_MAX_IV_LENGTH;
 
-    if(rsaSymKey == NULL || rsaIV == NULL || aesKey == NULL || aesIV == NULL) {
+    if(aesKey == NULL || aesIV == NULL) {
         return FAILURE;
     }
-    
+
     if(!EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha1(), (const unsigned char*)SALT, (const unsigned char*)AES_KEY_PASS, strlen(AES_KEY_PASS), AES_ROUNDS, aesKey, aesIV)) {
         return FAILURE;
     }

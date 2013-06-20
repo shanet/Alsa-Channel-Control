@@ -82,15 +82,9 @@ private:
     EVP_CIPHER_CTX *rsaDecryptCtx;
     EVP_CIPHER_CTX *aesDecryptCtx;
 
-    unsigned char *rsaSymKey;
-    int rsaSymKeyLen;
-    unsigned char *rsaIV;
-
     unsigned char *aesKey;
     unsigned char *aesIV;
     int aesKeyLen;
-
-    size_t encryptLen;
 
     int init(size_t rsaKeyLen, size_t aesKeyLen);
     int genTestClientKey(int keyLen);
