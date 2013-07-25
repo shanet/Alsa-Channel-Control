@@ -170,6 +170,41 @@ int Client::receiveRemotePubKey() {
 }
 
 
+int Client::sendAESIv() {
+   unsigned char *aesIv;
+   unsigned char *encAesIv;
+   unsigned char *ek;
+   unsigned char *iv;
+   size_t aesIvLen;
+   size_t encAesIvLen;
+   size_t ekl;
+   size_t ivl;
+   int sendStatus;
+
+   // Get the AES IV
+   aesIvLen = crypto->getAESIv(&aesIv);
+
+   // Encrypt the AES IV with RSA
+   encAesIvLen = crypto->rsaEncrypt(aesIv, aesIvLen, &encAesIv, &ek, &ekl, &iv, &ivl);
+
+   // Send the encrypted AES IV to the client
+   sendStatus = ::send(socket, iv, (int)ivl, 0);
+   // TODO: FIX THIS! THIS IS SUPER-HACKISH AND BAD!
+   // We should be sending a fixed-length header
+   usleep(500000);
+   sendStatus = ::send(socket, ek, (int)ekl, 0);
+   usleep(500000);
+   sendStatus = ::send(socket, encAesIv, (int)encAesIvLen, 0);
+   usleep(500000);
+
+   // Encrypted messages are dynamically allocated in the encrypt function so they need free'd
+   free(encAesIv);
+   encAesIv = NULL;
+
+   return sendStatus;
+}
+
+
 int Client::sendAESKey() {
    unsigned char *aesKey;
    unsigned char *encAesKey;
@@ -189,9 +224,11 @@ int Client::sendAESKey() {
 
    // Send the encrypted AES key to the client
    sendStatus = ::send(socket, iv, (int)ivl, 0);
-   usleep(50000);
+   // TODO: FIX THIS! THIS IS SUPER-HACKISH AND BAD!
+   // We should be sending a fixed-length header
+   usleep(500000);
    sendStatus = ::send(socket, ek, (int)ekl, 0);
-   usleep(50000);
+   usleep(500000);
    sendStatus = ::send(socket, encAesKey, (int)encAesKeyLen, 0);
 
    // Encrypted messages are dynamically allocated in the encrypt function so they need free'd

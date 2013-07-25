@@ -1,32 +1,21 @@
-// alsa-control-server
-// shane tully (shane@shanetully.com)
-// shanetully.com
-// https://github.com/shanet/Alsa-Channel-Control
-
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/aes.h>
 #include <openssl/err.h>
+#include <openssl/rand.h>
 
 #include <stdio.h>
 #include <string>
 #include <string.h>
 
-// Key lengths should be in bits
-#ifdef DEBUG
-#define DEFAULT_RSA_KEYLEN 1024
-#define DEFAULT_AES_KEYLEN 128
-#define AES_ROUNDS 3
-#else
-#define DEFAULT_RSA_KEYLEN 2048
-#define DEFAULT_AES_KEYLEN 256
+#ifndef CRYPTO_H
+#define CRYPTO_H
+
+#define RSA_KEYLEN 2048
+#define AES_KEYLEN 256
 #define AES_ROUNDS 6
-#endif
 
 //#define PSUEDO_CLIENT
-
-#define SALT         "alsa_channel_control"
-#define AES_KEY_PASS "alsa_channel_control"
 
 #define SUCCESS 0
 #define FAILURE -1
@@ -34,9 +23,8 @@
 #define KEY_SERVER_PRI 0
 #define KEY_SERVER_PUB 1
 #define KEY_CLIENT_PUB 2
-
-#ifndef CRYPTO_H
-#define CRYPTO_H
+#define KEY_AES        3
+#define KEY_AES_IV     4
 
 class Crypto {
 
@@ -45,10 +33,7 @@ public:
 
     Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen);
 
-    Crypto(unsigned char *remotePubKey, size_t remotePubKeyLen, size_t rsaKeyLen, size_t aesKeyLen);
-
     ~Crypto();
-
 
     int rsaEncrypt(const unsigned char *msg, size_t msgLen, unsigned char **encMsg, unsigned char **ek, size_t *ekl, unsigned char **iv, size_t *ivl);
 
@@ -72,6 +57,10 @@ public:
 
     int setAESKey(unsigned char *aesKey, size_t aesKeyLen);
 
+    int getAESIv(unsigned char **aesIv);
+
+    int setAESIv(unsigned char *aesIv, size_t aesIvLen);
+
 private:
     static EVP_PKEY *localKeypair;
     EVP_PKEY *remotePubKey;
@@ -84,10 +73,9 @@ private:
 
     unsigned char *aesKey;
     unsigned char *aesIV;
-    int aesKeyLen;
 
-    int init(size_t rsaKeyLen, size_t aesKeyLen);
-    int genTestClientKey(int keyLen);
+    int init();
+    int genTestClientKey();
 };
 
 #endif

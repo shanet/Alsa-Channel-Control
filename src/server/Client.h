@@ -55,6 +55,8 @@ public:
 
    int receiveRemotePubKey();
 
+   int sendAESIv();
+
    int sendAESKey();
 
 private:

@@ -247,6 +247,57 @@ int Client::receiveRemotePubKey() {
 }
 
 
+int Client::receiveAESIv() {
+   unsigned char *encAesIv = (unsigned char*) malloc(BUFFER);
+   unsigned char *aesIv = NULL;
+   unsigned char *ek = (unsigned char*) malloc(BUFFER);
+   unsigned char *iv = (unsigned char*) malloc(BUFFER);
+
+   int ekl;
+   int ivl;
+   int encAesIvLen;
+   int aesIvLen;
+   int setAesStatus;
+
+   ivl = recv(socket, iv, BUFFER, 0);
+
+   // Validate the reply
+   if(ivl == 0) {
+      return END;
+   }
+
+   ekl = recv(socket, ek, BUFFER, 0);
+
+   // Validate the reply
+   if(ekl == 0) {
+      return END;
+   }
+
+   encAesIvLen = recv(socket, encAesIv, BUFFER, 0);
+
+   // Validate the reply
+   if(encAesIvLen == 0) {
+      return END;
+   }
+
+   // Decrypt the AES IV
+   if(crypto == NULL) return FAILURE;
+
+   if((aesIvLen = crypto->rsaDecrypt(encAesIv, encAesIvLen, ek, ekl, iv, ivl, &aesIv)) == FAILURE) {
+      return FAILURE;
+   }
+
+   // Set the AES IV in the crypto object
+   setAesStatus = crypto->setAESIv(aesIv, aesIvLen);
+
+   free(encAesIv);
+   free(aesIv);
+   encAesIv = aesIv = NULL;
+
+   return setAesStatus;
+}
+
+
 int Client::receiveAESKey() {
    unsigned char *encAesKey = (unsigned char*) malloc(BUFFER);
    unsigned char *aesKey = NULL;
@@ -287,7 +338,7 @@ int Client::receiveAESKey() {
       return FAILURE;
    }
 
-   // Set the public key in the crypto object
+   // Set the AES key in the crypto object
    setAesStatus = crypto->setAESKey(aesKey, aesKeyLen);
 
    free(encAesKey);

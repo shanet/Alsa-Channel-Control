@@ -268,6 +268,15 @@ int clientHandshake() {
          return FAILURE;
       }
 
+      // Send the AES IV to the client (the sendAESIv() function takes care of encrypting it first)
+      if(verbose >= DBL_VERBOSE) {
+         printf("%s: Client %d: Sending AES IV\n", prog, client.getID());
+      }
+      if(client.sendAESIv() == FAILURE) {
+         fprintf(stderr, "%s: Failed to send AES IV to client %d\n", prog, client.getID());
+         return FAILURE;
+      }
+
       // Send the AES key to the client (the sendAESKey() function takes care of encrypting it first)
       if(verbose >= DBL_VERBOSE) {
          printf("%s: Client %d: Sending AES key\n", prog, client.getID());

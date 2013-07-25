@@ -273,6 +273,17 @@ int serverHandshake() {
          return FAILURE;
       }
 
+      // Get the AES IV
+      if(verbose >= DBL_VERBOSE) {
+         printf("%s: Receiving AES IV from server\n", prog);
+      }
+      if(client.receiveAESIv() == FAILURE) {
+         if(verbose >= VERBOSE) {
+            fprintf(stderr, "%s: Failed to receive AES IV from server\n", prog);
+         }
+         return FAILURE;
+      }
+
       // Get the AES key
       if(verbose >= DBL_VERBOSE) {
          printf("%s: Receiving AES key from server\n", prog);
