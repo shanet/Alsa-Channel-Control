@@ -4,7 +4,7 @@
 # https://github.com/shanet/Alsa-Channel-Control
 
 CC=g++
-LANG=cpp
+EXTENSION=cpp
 
 PROJ_NAME=alsa-server
 VERSION = "\"4.0.1\""
@@ -24,9 +24,9 @@ SERVER_SOURCES=$(wildcard src/server/*.cpp)
 CLIENT_SOURCES=$(wildcard src/client/*.cpp)
 CRYPTO_SOURCES=$(wildcard src/crypto/*.cpp)
 
-SERVER_OBJECTS=$(SERVER_SOURCES:.$(LANG)=.o)
-CLIENT_OBJECTS=$(CLIENT_SOURCES:.$(LANG)=.o)
-CRYPTO_OBJECTS=$(CRYPTO_SOURCES:.$(LANG)=.o)
+SERVER_OBJECTS=$(SERVER_SOURCES:.$(EXTENSION)=.o)
+CLIENT_OBJECTS=$(CLIENT_SOURCES:.$(EXTENSION)=.o)
+CRYPTO_OBJECTS=$(CRYPTO_SOURCES:.$(EXTENSION)=.o)
 
 CFLAGS=-Isrc/include/ -Isrc/crypto -Wall -Wextra -DVERSION=$(VERSION)
 
@@ -94,7 +94,7 @@ bin_tar: all
 	
 	rm -rf $(PROJ_NAME)
 
-.$(LANG).o:
+.$(EXTENSION).o:
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
