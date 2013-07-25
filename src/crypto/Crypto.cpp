@@ -294,7 +294,7 @@ int Crypto::setAESIv(unsigned char *aesIV, size_t aesIVLen) {
         return FAILURE;
     }
  
-    strncpy((char*)this->aesIV, (const char*)aesIV, AES_KEYLEN/8);
+    strncpy((char*)this->aesIV, (const char*)aesIV, AES_KEYLEN/16);
  
     return SUCCESS;
 }
